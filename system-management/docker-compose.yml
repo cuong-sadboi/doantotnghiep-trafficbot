@@ -1,15 +1,12 @@
 services:
-  mongodb:
-    image: mongo:5.0.15
+  mysql:
+    image: mysql:8.0
     ports:
-      - "27017:27017"
+      - "3306:3306"
     environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: 123456
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: doantotnghiep
     volumes:
-      - ./data/mongodb:/data/db
-
-volumes:
-  mongodb_data_container:
+      - ./data/mysql:/var/lib/mysql
 
     # docker compose -p system-management up -d

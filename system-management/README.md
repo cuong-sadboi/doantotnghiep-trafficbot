@@ -31,6 +31,35 @@
 $ npm install
 ```
 
+## MySQL quick start (for this project)
+
+This project uses MySQL through `@nestjs/typeorm`.
+
+### 1) Start MySQL
+
+If Docker Desktop is running:
+
+```bash
+docker compose up -d mysql
+```
+
+Connection settings in this project are stored in `.env`:
+
+```text
+MYSQL_HOST=localhost
+MYSQL_PORT=3306
+MYSQL_USER=root
+MYSQL_PASSWORD=123456
+MYSQL_DATABASE=doantotnghiep
+MYSQL_SYNCHRONIZE=true
+```
+
+### 2) Run API with MySQL
+
+```bash
+npm run start:dev
+```
+
 ## Compile and run the project
 
 ```bash

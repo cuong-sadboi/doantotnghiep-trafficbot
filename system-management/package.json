@@ -21,15 +21,21 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@nestjs/axios": "^4.0.1",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "4.0.4",
     "@nestjs/core": "^11.0.1",
+    "@nestjs/jwt": "^11.0.2",
     "@nestjs/mapped-types": "2.1.1",
-    "@nestjs/mongoose": "11.0.4",
     "@nestjs/platform-express": "^11.0.1",
-    "mongoose": "8.5.1",
+    "@nestjs/typeorm": "^11.0.0",
+    "axios": "^1.16.1",
+    "bcryptjs": "^3.0.3",
+    "google-auth-library": "^10.6.2",
+    "mysql2": "^3.11.0",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "typeorm": "^0.3.21"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

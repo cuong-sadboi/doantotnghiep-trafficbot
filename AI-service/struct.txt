@@ -1,0 +1,46 @@
+Kiến trúc AI của bạn nên như này
+Traffic Data
+     ↓
+Feature Engineering
+     ↓
+Dataset
+     ↓
+Train ML Model
+     ↓
+Save Model (.pkl)
+     ↓
+AI Service (Python)
+     ↓
+REST API Predict
+     ↓
+NestJS Backend
+     ↓
+Dashboard
+
+Random Forest
+
+| Feature             | Ý nghĩa              |
+| ------------------- | -------------------- |
+| requests_per_minute | số request/phút      |
+| session_duration    | thời gian session    |
+| unique_pages        | số trang truy cập    |
+| avg_click_interval  | thời gian giữa click |
+| is_headless         | có phải browser ảo   |
+| user_agent_length   | độ dài UA            |
+| visit_count         | số lần truy cập      |
+
+
+| Label | Meaning   |
+| ----- | --------- |
+| 0     | Real User |
+| 1     | Bot       |
+
+
+AI service structure
+ai-service/
+│
+├── train.py
+├── predict.py
+├── model.pkl
+├── app.py
+├── dataset.csv

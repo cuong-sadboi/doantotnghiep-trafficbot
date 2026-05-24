@@ -8,11 +8,14 @@ import {
   ThunderboltOutlined,
 } from "@ant-design/icons";
 import Link from "next/link";
+import DashboardSidebar from "@/components/DashboardSidebar";
+import NavbarAuthArea from "@/components/NavbarAuthArea";
 
 export default function Home() {
   return (
-    <div className="selection:bg-primary/30 selection:text-primary">
-      {/* TopNavBar */}
+    <div className="selection:bg-primary/30 selection:text-primary flex min-h-screen">
+      <div className="flex flex-1 flex-col overflow-x-hidden">
+        {/* TopNavBar */}
       <nav className="sticky top-0 z-50 flex h-16 w-full items-center justify-between border-b border-[#353535]/15 bg-[#131313] px-6 font-sans font-medium tracking-tight">
         <div className="flex items-center gap-8">
           <span className="text-xl font-bold tracking-tighter text-[#abc7ff]">Log Curator</span>
@@ -23,7 +26,7 @@ export default function Home() {
             <a className="text-[#A1A1AA] transition-colors hover:bg-[#353535]/40 hover:text-[#e2e2e2]" href="/analytics">
               Analytics
             </a>
-            <a className="text-[#A1A1AA] transition-colors hover:bg-[#353535]/40 hover:text-[#e2e2e2]" href="#">
+            <a className="text-[#A1A1AA] transition-colors hover:bg-[#353535]/40 hover:text-[#e2e2e2]" href="/streams">
               Streams
             </a>
             <a className="text-[#A1A1AA] transition-colors hover:bg-[#353535]/40 hover:text-[#e2e2e2]" href="#">
@@ -49,13 +52,7 @@ export default function Home() {
           <button className="rounded-xl p-2 text-[#A1A1AA] transition-colors hover:bg-[#353535]/40" type="button">
             <CodeOutlined className="text-base" />
           </button>
-          <div className="h-8 w-8 overflow-hidden rounded-full border border-outline-variant/30 bg-surface-container-high">
-            <img
-              alt="User profile"
-              className="h-full w-full object-cover"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuBalHK2ZIt9renDt-yTGD_clOyQbaOFk5fhR-lee4vytkfnO4317aLX0NULJkhF_uDuMWFZCbQKlOf3ufbv-I9kyAnBG1lh15Vxda7v4m5NEekd_ToxcweQnHqCIQQELY7fG-bAc86AM12Hb9Tr1aY9LW3KPotzUSsCF5VLuxjajsg3tQ64AdSvw_ZHynOqyDXdwcV-piTDzYPv8tjagQt24AgjflQJJlpQBkI6zrSm_4Cm34J4NEBjO_u57kH1c4VYnaHA3lkJNcs"
-            />
-          </div>
+          <NavbarAuthArea />
         </div>
       </nav>
 
@@ -358,6 +355,8 @@ export default function Home() {
           <span>Stable Build 0.0.1</span>
         </div>
       </footer>
+      </div>
+      <DashboardSidebar />
     </div>
   );
 }

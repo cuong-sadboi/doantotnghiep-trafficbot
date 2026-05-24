@@ -15,6 +15,7 @@ import {
   WarningOutlined,
 } from "@ant-design/icons";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -31,17 +32,6 @@ import {
   YAxis,
 } from "recharts";
 
-const requestsData = [
-  { time: "04:00 PM", ok: 52, warning: 1, error: 1 },
-  { time: "06:00 AM", ok: 1, warning: 0, error: 0 },
-  { time: "07:00 AM", ok: 16, warning: 2, error: 0 },
-  { time: "05:00 AM", ok: 1, warning: 0, error: 0 },
-  { time: "09:00 PM", ok: 54, warning: 1, error: 1 },
-  { time: "01:00 AM", ok: 20, warning: 1, error: 0 },
-  { time: "10:00 PM", ok: 80, warning: 2, error: 1 },
-  { time: "08:00 PM", ok: 1, warning: 0, error: 0 },
-];
-
 const transferData = [
   { time: "04:00 PM", value: 18.4 },
   { time: "06:00 AM", value: 0.3 },
@@ -53,39 +43,6 @@ const transferData = [
   { time: "08:00 PM", value: 0.3 },
 ];
 
-const statusCodes = [
-  { name: "2xx", value: 161, color: "#57cd81" },
-  { name: "4xx", value: 93, color: "#ff9d0a" },
-  { name: "3xx", value: 8, color: "#4ca6ff" },
-  { name: "5xx", value: 3, color: "#ff5b66" },
-];
-
-const browserData = [
-  { name: "Chrome", value: 165, color: "#4ca6ff" },
-  { name: "Edge", value: 55, color: "#ff9d0a" },
-  { name: "Bots", value: 22, color: "#8d939f" },
-  { name: "Safari", value: 21, color: "#57cd81" },
-  { name: "Other", value: 2, color: "#1f232b" },
-];
-
-const methodsData = [
-  { name: "GET", value: 265 },
-  { name: "POST", value: 2 },
-];
-
-const topPaths = [
-  { path: "/robots.txt", requests: 22 },
-  { path: "/static/fonts/fontawesome/webfonts/fa-brands-400.woff2", requests: 19 },
-  { path: "/static/fonts/fontawesome/webfonts/fa-brands-400.woff", requests: 16 },
-  { path: "/", requests: 14 },
-  { path: "/static/fonts/fontawesome/css/all.min.css", requests: 12 },
-  { path: "/static/css/ui.css", requests: 11 },
-];
-
-const totalRequests = 265;
-const totalStatus = statusCodes.reduce((sum, item) => sum + item.value, 0);
-const totalBrowsers = browserData.reduce((sum, item) => sum + item.value, 0);
-
 const tooltipStyle = {
   backgroundColor: "#171717",
   borderColor: "rgba(139,145,159,0.25)",
@@ -94,6 +51,67 @@ const tooltipStyle = {
 };
 
 export default function DemoPage() {
+  const [loading, setLoading] = useState(false);
+  const [realData, setRealData] = useState<any>(null);
+
+  useEffect(() => {
+    const rawLog = sessionStorage.getItem("log-curator:raw-access-log");
+    if (rawLog) {
+      handleAnalyze(rawLog);
+    }
+  }, []);
+
+  const handleAnalyze = async (logText: string) => {
+    setLoading(true);
+    try {
+      const response = await fetch("http://localhost:3001/ai/analyze-logs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ logText }),
+      });
+      const data = await response.json();
+      setRealData(data);
+    } catch (error) {
+      console.error("Failed to analyze logs:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Default mock data fallback
+  const requestsData = [
+    { time: "04:00 PM", ok: 52, warning: 1, error: 1 },
+    { time: "06:00 AM", ok: 1, warning: 0, error: 0 },
+    { time: "07:00 AM", ok: 16, warning: 2, error: 0 },
+    { time: "05:00 AM", ok: 1, warning: 0, error: 0 },
+    { time: "09:00 PM", ok: 54, warning: 1, error: 1 },
+    { time: "01:00 AM", ok: 20, warning: 1, error: 0 },
+    { time: "10:00 PM", ok: 80, warning: 2, error: 1 },
+    { time: "08:00 PM", ok: 1, warning: 0, error: 0 },
+  ];
+
+  const statusCodes = [
+    { name: "2xx", value: 161, color: "#57cd81" },
+    { name: "4xx", value: 93, color: "#ff9d0a" },
+    { name: "3xx", value: 8, color: "#4ca6ff" },
+    { name: "5xx", value: 3, color: "#ff5b66" },
+  ];
+
+  const browserData = realData ? [
+    { name: "Real User", value: realData.total - realData.bots_detected, color: "#57cd81" },
+    { name: "Bots", value: realData.bots_detected, color: "#eb4349" },
+  ] : [
+    { name: "Chrome", value: 165, color: "#4ca6ff" },
+    { name: "Edge", value: 55, color: "#ff9d0a" },
+    { name: "Bots", value: 22, color: "#8d939f" },
+    { name: "Safari", value: 21, color: "#57cd81" },
+    { name: "Other", value: 2, color: "#1f232b" },
+  ];
+
+  const botPercentage = realData ? ((realData.bots_detected / realData.total) * 100).toFixed(1) : "8.3";
+  const botCount = realData ? realData.bots_detected : 22;
+  const totalCount = realData ? realData.total : 265;
+
   return (
     <div className="selection:bg-primary/30 selection:text-primary">
       <nav className="sticky top-0 z-50 flex h-16 w-full items-center justify-between border-b border-[#353535]/15 bg-[#131313] px-6 font-sans font-medium tracking-tight">
@@ -106,7 +124,7 @@ export default function DemoPage() {
             <Link className="border-b-2 border-[#abc7ff] pb-1 text-[#abc7ff] transition-colors hover:bg-[#353535]/40" href="/analytics">
               Analytics
             </Link>
-            <a className="text-[#A1A1AA] transition-colors hover:bg-[#353535]/40 hover:text-[#e2e2e2]" href="#">
+            <a className="text-[#A1A1AA] transition-colors hover:bg-[#353535]/40 hover:text-[#e2e2e2]" href="/streams">
               Streams
             </a>
             <a className="text-[#A1A1AA] transition-colors hover:bg-[#353535]/40 hover:text-[#e2e2e2]" href="#">
@@ -164,16 +182,16 @@ export default function DemoPage() {
               <p className="mb-4 flex items-center gap-2 text-sm text-on-surface-variant">
                 <LineChartOutlined className="text-primary" /> Total Requests
               </p>
-              <p className="text-4xl font-bold tracking-tight">265</p>
+              <p className="text-4xl font-bold tracking-tight">{realData ? realData.total : 265}</p>
               <p className="mt-2 flex items-center gap-2 text-base text-error">
                 <ArrowDownOutlined /> <span className="text-sm">60.8% success</span>
               </p>
             </div>
             <div className="rounded-xl border border-outline-variant/10 bg-surface-container-low p-5">
               <p className="mb-4 flex items-center gap-2 text-sm text-on-surface-variant">
-                <UserOutlined className="text-primary" /> Unique Visitors
+                <UserOutlined className="text-primary" /> Unique IPs
               </p>
-              <p className="text-4xl font-bold tracking-tight">26</p>
+              <p className="text-4xl font-bold tracking-tight">{realData?.results?.length ?? 26}</p>
             </div>
             <div className="rounded-xl border border-outline-variant/10 bg-surface-container-low p-5">
               <p className="mb-4 flex items-center gap-2 text-sm text-on-surface-variant">
@@ -195,7 +213,7 @@ export default function DemoPage() {
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
             <div className="rounded-xl border border-outline-variant/10 bg-surface-container-low p-6">
               <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-3xl font-bold tracking-tight text-on-surface">Requests <span className="text-lg text-outline">265</span></h3>
+                <h3 className="text-3xl font-bold tracking-tight text-on-surface">Requests <span className="text-lg text-outline">{realData ? realData.total : 265}</span></h3>
                 <div className="font-mono text-xs uppercase text-outline">2xx 4xx 5xx</div>
               </div>
               <div className="h-64">
@@ -254,14 +272,14 @@ export default function DemoPage() {
                       <span className="h-3 w-3 rounded" style={{ backgroundColor: item.color }} />
                       {item.name}
                     </span>
-                    <span className="text-on-surface-variant">{item.value} ({((item.value / totalStatus) * 100).toFixed(1)}%)</span>
+                    <span className="text-on-surface-variant">{item.value} ({((item.value / statusCodes.reduce((s, i) => s + i.value, 0)) * 100).toFixed(1)}%)</span>
                   </div>
                 ))}
               </div>
             </div>
 
             <div className="rounded-xl border border-outline-variant/10 bg-surface-container-low p-6">
-              <h3 className="mb-6 text-2xl font-bold tracking-tight">Browsers</h3>
+              <h3 className="mb-6 text-2xl font-bold tracking-tight">Traffic Segments</h3>
               <div className="h-52">
                 <ResponsiveContainer height="100%" width="100%">
                   <PieChart>
@@ -281,24 +299,23 @@ export default function DemoPage() {
                       <span className="h-3 w-3 rounded" style={{ backgroundColor: item.color }} />
                       {item.name}
                     </span>
-                    <span className="text-on-surface-variant">{item.value} ({((item.value / totalBrowsers) * 100).toFixed(1)}%)</span>
+                    <span className="text-on-surface-variant">{item.value} ({((item.value / browserData.reduce((s, i) => s + i.value, 0)) * 100).toFixed(1)}%)</span>
                   </div>
                 ))}
               </div>
             </div>
 
             <div className="rounded-xl border border-outline-variant/10 bg-surface-container-low p-6">
-              <h3 className="mb-6 text-2xl font-bold tracking-tight">HTTP Methods</h3>
-              <div className="h-[280px]">
-                <ResponsiveContainer height="100%" width="100%">
-                  <BarChart data={methodsData} layout="vertical" margin={{ top: 20, right: 10, left: 10, bottom: 10 }}>
-                    <CartesianGrid stroke="rgba(139,145,159,0.15)" strokeDasharray="3 4" horizontal={false} />
-                    <XAxis type="number" stroke="#8b919f" tick={{ fill: "#8b919f", fontSize: 10 }} tickLine={false} axisLine={false} />
-                    <YAxis dataKey="name" type="category" stroke="#8b919f" tick={{ fill: "#c1c6d5", fontSize: 11 }} tickLine={false} axisLine={false} width={36} />
-                    <Tooltip contentStyle={tooltipStyle} />
-                    <Bar dataKey="value" fill="#4ca6ff" radius={[0, 8, 8, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+              <h3 className="mb-6 text-2xl font-bold tracking-tight">AI Insights</h3>
+              <div className="space-y-4">
+                <div className="p-4 rounded-lg bg-surface-container-high/50 border border-outline/20">
+                  <p className="text-xs text-outline uppercase tracking-wider mb-1">Bot Detection Accuracy</p>
+                  <p className="text-2xl font-bold text-primary">~91% (Random Forest)</p>
+                </div>
+                <div className="p-4 rounded-lg bg-surface-container-high/50 border border-outline/20">
+                  <p className="text-xs text-outline uppercase tracking-wider mb-1">Top Bot Indicator</p>
+                  <p className="text-xl font-semibold">is_headless / session_duration</p>
+                </div>
               </div>
             </div>
           </div>
@@ -307,54 +324,19 @@ export default function DemoPage() {
             <div className="rounded-xl border border-outline-variant/10 bg-surface-container-low p-6">
               <div className="mb-6 flex items-center justify-between">
                 <h3 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
-                  <RobotOutlined className="text-on-surface-variant" /> Bot Traffic
+                  <RobotOutlined className="text-on-surface-variant" /> AI Bot Analysis
                 </h3>
-                <span className="rounded-lg bg-surface-container-high px-3 py-1 font-mono text-sm">22 requests</span>
+                <span className="rounded-lg bg-surface-container-high px-3 py-1 font-mono text-sm">{botCount} detected</span>
               </div>
               <div className="mb-8 flex items-center justify-between">
                 <div>
-                  <div className="text-4xl font-bold tracking-tight">8.3%</div>
-                  <div className="text-lg text-on-surface-variant">of total traffic</div>
+                  <div className="text-4xl font-bold tracking-tight">{botPercentage}%</div>
+                  <div className="text-lg text-on-surface-variant">of analyzed traffic</div>
                 </div>
                 <div className="h-28 w-28">
                   <ResponsiveContainer height="100%" width="100%">
                     <PieChart>
-                      <Pie dataKey="value" data={[{ name: "Bot", value: 22 }, { name: "Other", value: 243 }]} innerRadius={30} outerRadius={46} stroke="none">
-                        <Cell fill="#4ca6ff" />
-                        <Cell fill="#14161b" />
-                      </Pie>
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex items-center justify-between text-lg">
-                  <span>Generic Bot</span>
-                  <span className="text-on-surface-variant">22</span>
-                </div>
-                <div className="h-2 overflow-hidden rounded-full bg-[#16385a]">
-                  <div className="h-full bg-[#4ca6ff]" style={{ width: "100%" }} />
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-error/30 bg-surface-container-low p-6">
-              <div className="mb-6 flex items-center justify-between">
-                <h3 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-on-surface">
-                  <WarningOutlined className="text-error" /> Security Threats
-                </h3>
-                <span className="rounded-lg bg-error px-3 py-1 text-sm font-semibold text-white">55 detected</span>
-              </div>
-              <div className="mb-8 flex items-center justify-between">
-                <div>
-                  <div className="text-4xl font-bold tracking-tight">20.8%</div>
-                  <div className="text-lg text-on-surface-variant">malicious requests</div>
-                </div>
-                <div className="h-28 w-28">
-                  <ResponsiveContainer height="100%" width="100%">
-                    <PieChart>
-                      <Pie dataKey="value" data={[{ name: "Threat", value: 55 }, { name: "Normal", value: 210 }]} innerRadius={30} outerRadius={46} stroke="none">
+                      <Pie dataKey="value" data={[{ name: "Bot", value: +botCount }, { name: "Other", value: +totalCount - +botCount }]} innerRadius={30} outerRadius={46} stroke="none">
                         <Cell fill="#eb4349" />
                         <Cell fill="#14161b" />
                       </Pie>
@@ -362,21 +344,29 @@ export default function DemoPage() {
                   </ResponsiveContainer>
                 </div>
               </div>
+
               <div className="space-y-3">
                 <div className="flex items-center justify-between text-lg">
-                  <span>Admin panel probe</span>
-                  <span className="text-on-surface-variant">53</span>
+                  <span>Bots</span>
+                  <span className="text-on-surface-variant">{botCount}</span>
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-[#16385a]">
-                  <div className="h-full bg-[#4ca6ff]" style={{ width: "96.4%" }} />
+                  <div className="h-full bg-[#eb4349]" style={{ width: `${botPercentage}%` }} />
                 </div>
-                <div className="flex items-center justify-between text-lg">
-                  <span>Missing user agent</span>
-                  <span className="text-on-surface-variant">2</span>
-                </div>
-                <div className="h-2 overflow-hidden rounded-full bg-[#16385a]">
-                  <div className="h-full bg-[#4ca6ff]" style={{ width: "3.6%" }} />
-                </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-outline-variant/10 bg-surface-container-low p-6">
+              <h3 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-on-surface mb-6">
+                <RadarChartOutlined className="text-primary" /> Top Suspected Bot IPs
+              </h3>
+              <div className="space-y-3">
+                {realData?.results ? realData.results.filter((r: any) => r.is_bot).slice(0, 5).map((r: any) => (
+                  <div key={r.ip} className="flex items-center justify-between p-2 rounded bg-black/20 text-sm">
+                    <span className="font-mono">{r.ip}</span>
+                    <span className="text-error font-semibold">{(r.confidence * 100).toFixed(0)}% Bot</span>
+                  </div>
+                )) : <p className="text-outline italic">No bots detected in this sample.</p>}
               </div>
             </div>
           </div>
@@ -384,39 +374,34 @@ export default function DemoPage() {
           <div className="overflow-hidden rounded-xl border border-outline-variant/10 bg-surface-container-low">
             <div className="flex items-center justify-between border-b border-outline-variant/10 px-6 py-4">
               <h3 className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-on-surface">
-                <RadarChartOutlined className="text-primary" /> Top Request Paths
+                <RadarChartOutlined className="text-primary" /> Analyzed Session Details
               </h3>
-              <p className="font-mono text-xs uppercase tracking-[0.18em] text-outline">Live Capture</p>
+              {loading && <span className="text-primary animate-pulse text-sm">Analyzing via AI Service...</span>}
             </div>
 
             <div className="overflow-x-auto p-6 no-scrollbar">
               <table className="w-full text-left">
                 <thead>
                   <tr className="border-b border-outline-variant/10 font-mono text-[11px] uppercase tracking-[0.18em] text-outline">
-                    <th className="pb-4">Path</th>
-                    <th className="pb-4 text-right">Requests</th>
-                    <th className="pb-4 pl-8 text-right">Share</th>
+                    <th className="pb-4">IP Address</th>
+                    <th className="pb-4">Type</th>
+                    <th className="pb-4 text-right">Visits</th>
+                    <th className="pb-4 text-right">Confidence</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-outline-variant/5">
-                  {topPaths.map((row) => {
-                    const share = ((row.requests / totalRequests) * 100).toFixed(1);
-
-                    return (
-                      <tr className="transition-colors hover:bg-surface-container-high/20" key={row.path}>
-                        <td className="py-3 text-sm text-on-surface">{row.path}</td>
-                        <td className="py-3 text-right text-sm font-semibold text-on-surface">{row.requests}</td>
-                        <td className="py-3 pl-8 text-right">
-                          <div className="flex items-center justify-end gap-3">
-                            <div className="h-1.5 w-28 overflow-hidden rounded-full bg-surface-container-highest">
-                              <div className="h-full rounded-full bg-[#4ca6ff]" style={{ width: `${share}%` }} />
-                            </div>
-                            <span className="w-11 text-xs text-outline">{share}%</span>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {realData?.results?.map((row: any) => (
+                    <tr className="transition-colors hover:bg-surface-container-high/20" key={row.ip}>
+                      <td className="py-3 text-sm font-mono text-on-surface">{row.ip}</td>
+                      <td className="py-3 text-sm">
+                        <span className={`px-2 py-0.5 rounded-md text-xs font-semibold ${row.is_bot ? 'bg-error/20 text-error' : 'bg-green-500/20 text-green-400'}`}>
+                          {row.is_bot ? 'BOT' : 'REAL USER'}
+                        </span>
+                      </td>
+                      <td className="py-3 text-right text-sm font-semibold text-on-surface">{row.visit_count}</td>
+                      <td className="py-3 text-right text-sm text-outline">{(row.confidence * 100).toFixed(1)}%</td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>

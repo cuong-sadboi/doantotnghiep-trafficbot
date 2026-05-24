@@ -5,6 +5,27 @@
 :root {
   --background: #131313;
   --foreground: #e2e2e2;
+  --auth-bg-warm: #f4ece4;
+  --auth-bg-cool: #e6f2f8;
+  --auth-bg-base: #f4f6f8;
+  --auth-card: #ffffff;
+  --auth-border: #d8dde3;
+  --auth-text: #1f2a37;
+  --auth-muted: #6b7280;
+  --auth-accent: #1f7a8c;
+  --auth-accent-hover: #186373;
+  --auth-link: #0b63ce;
+  --auth-link-hover: #084ea3;
+  --auth-input-bg: #ffffff;
+  --auth-input-border: #d8dde3;
+  --auth-input-placeholder: #6b7280;
+  --auth-outline-bg: #ffffff;
+  --auth-outline-border: #d8dde3;
+  --auth-outline-text: #1f2a37;
+  --auth-error-bg: #fff1f1;
+  --auth-error-border: #f3b7b7;
+  --auth-error-text: #a61d1d;
+  --auth-shadow: 0 24px 60px rgba(31, 42, 55, 0.12);
 }
 
 @theme inline {
@@ -79,6 +100,164 @@ body {
   background-color: #131313;
   color: #e2e2e2;
   font-family: Inter, sans-serif;
+}
+
+.auth-shell {
+  min-height: 100vh;
+  background:
+    radial-gradient(900px circle at 12% 10%, var(--auth-bg-warm), transparent 55%),
+    radial-gradient(900px circle at 88% 12%, var(--auth-bg-cool), transparent 55%),
+    linear-gradient(180deg, #f8fafc 0%, var(--auth-bg-base) 100%);
+  color: var(--auth-text);
+}
+
+.auth-shell.auth-dark {
+  --auth-bg-warm: #101924;
+  --auth-bg-cool: #0f1f2b;
+  --auth-bg-base: #0b1117;
+  --auth-card: #111827;
+  --auth-border: #1f2937;
+  --auth-text: #e5e7eb;
+  --auth-muted: #9ca3af;
+  --auth-accent: #2a93a8;
+  --auth-accent-hover: #1f7a8c;
+  --auth-link: #7dd3fc;
+  --auth-link-hover: #bae6fd;
+  --auth-input-bg: #0f172a;
+  --auth-input-border: #1f2937;
+  --auth-input-placeholder: #94a3b8;
+  --auth-outline-bg: #0f172a;
+  --auth-outline-border: #1f2937;
+  --auth-outline-text: #e5e7eb;
+  --auth-error-bg: #3b1414;
+  --auth-error-border: #5f1f1f;
+  --auth-error-text: #fecaca;
+  --auth-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  color: var(--auth-text);
+}
+
+.auth-card {
+  background: var(--auth-card);
+  border: 1px solid var(--auth-border);
+  border-radius: 18px;
+  box-shadow: var(--auth-shadow);
+  animation: auth-fade-up 0.5s ease both;
+}
+
+.auth-kicker {
+  color: var(--auth-muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.auth-title {
+  font-family: "Space Grotesk", sans-serif;
+  color: var(--auth-text);
+}
+
+.auth-label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--auth-text);
+}
+
+.auth-input {
+  width: 100%;
+  border: 1px solid var(--auth-input-border);
+  border-radius: 10px;
+  padding: 0.6rem 0.75rem;
+  background: var(--auth-input-bg);
+  color: var(--auth-text);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.auth-input::placeholder {
+  color: var(--auth-input-placeholder);
+}
+
+.auth-input:focus {
+  outline: none;
+  border-color: var(--auth-accent);
+  box-shadow: 0 0 0 3px rgba(31, 122, 140, 0.18);
+}
+
+.auth-btn {
+  width: 100%;
+  border-radius: 999px;
+  padding: 0.7rem 1rem;
+  font-weight: 600;
+  background: var(--auth-accent);
+  color: #ffffff;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.auth-btn:hover {
+  background: var(--auth-accent-hover);
+  transform: translateY(-1px);
+}
+
+.auth-outline-btn {
+  width: 100%;
+  border-radius: 999px;
+  padding: 0.7rem 1rem;
+  font-weight: 600;
+  border: 1px solid var(--auth-outline-border);
+  color: var(--auth-outline-text);
+  background: var(--auth-outline-bg);
+  transition: border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.auth-outline-btn:hover {
+  border-color: var(--auth-accent);
+  color: var(--auth-accent);
+  transform: translateY(-1px);
+}
+
+.auth-social-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+}
+
+.auth-social-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+}
+
+.auth-link {
+  color: var(--auth-link);
+  font-weight: 600;
+}
+
+.auth-link:hover {
+  color: var(--auth-link-hover);
+}
+
+.auth-error {
+  border-radius: 12px;
+  border: 1px solid var(--auth-error-border);
+  background: var(--auth-error-bg);
+  color: var(--auth-error-text);
+  font-size: 0.875rem;
+  padding: 0.6rem 0.75rem;
+}
+
+@keyframes auth-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .glass-morphism {

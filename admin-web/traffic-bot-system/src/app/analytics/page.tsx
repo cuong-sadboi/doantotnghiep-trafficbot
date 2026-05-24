@@ -1,3 +1,5 @@
+"use client";
+
 import {
   BellOutlined,
   CloudUploadOutlined,
@@ -10,8 +12,79 @@ import {
   ThunderboltOutlined,
   UploadOutlined,
 } from "@ant-design/icons";
+import { useRouter } from "next/navigation";
+import { ChangeEvent, DragEvent, useRef, useState } from "react";
 
 export default function AnalyticsPage() {
+  const [logText, setLogText] = useState("");
+  const [feedback, setFeedback] = useState("");
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
+
+  const nonEmptyLines = logText
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean).length;
+
+  const loadLogText = (text: string, source: "paste" | "file" | "drop") => {
+    setLogText(text);
+
+    const lines = text
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean).length;
+
+    if (!lines) {
+      setFeedback("No valid log lines were detected.");
+      return;
+    }
+
+    const sourceLabel = source === "file" ? "file" : source === "drop" ? "drop" : "clipboard";
+    setFeedback(`Loaded ${lines} log lines from ${sourceLabel}.`);
+  };
+
+  const handleDrop = async (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setIsDragging(false);
+
+    const droppedFile = event.dataTransfer.files?.[0];
+    if (droppedFile) {
+      const fileContent = await droppedFile.text();
+      loadLogText(fileContent, "drop");
+      return;
+    }
+
+    const droppedText = event.dataTransfer.getData("text");
+    if (droppedText) {
+      loadLogText(droppedText, "drop");
+    }
+  };
+
+  const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0];
+    if (!selectedFile) {
+      return;
+    }
+
+    const fileContent = await selectedFile.text();
+    loadLogText(fileContent, "file");
+    event.target.value = "";
+  };
+
+  const handleAnalyzeLogs = () => {
+    const normalizedText = logText.trim();
+    if (!normalizedText) {
+      setFeedback("Please paste access logs before analyzing.");
+      return;
+    }
+
+    sessionStorage.setItem("log-curator:raw-access-log", normalizedText);
+    sessionStorage.setItem("log-curator:last-import-source", "analytics");
+    setFeedback(`Analyzing ${nonEmptyLines} log lines...`);
+    router.push("/analysis/result");
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-surface text-on-surface selection:bg-primary/30 selection:text-primary">
       {/* Top Navigation Bar */}
@@ -25,7 +98,7 @@ export default function AnalyticsPage() {
             <a className="border-b-2 border-[#abc7ff] pb-1 text-[#abc7ff] transition-colors hover:bg-[#353535]/40" href="/analytics">
               Analytics
             </a>
-            <a className="text-[#A1A1AA] transition-colors hover:bg-[#353535]/40 hover:text-[#e2e2e2]" href="#">
+            <a className="text-[#A1A1AA] transition-colors hover:bg-[#353535]/40 hover:text-[#e2e2e2]" href="/streams">
               Streams
             </a>
             <a className="text-[#A1A1AA] transition-colors hover:bg-[#353535]/40 hover:text-[#e2e2e2]" href="#">
@@ -96,22 +169,79 @@ export default function AnalyticsPage() {
         <section className="px-6 pb-24">
           <div className="max-w-4xl mx-auto">
             {/* Drop Zone */}
-            <div className="relative dashed-border rounded-xl h-80 flex flex-col items-center justify-center p-8 transition-colors hover:bg-surface-container/30 cursor-pointer">
-              <textarea className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" placeholder="Paste your nginx access logs here..." />
-              <div className="text-center pointer-events-none">
+            <div
+              className={`relative dashed-border rounded-xl min-h-80 p-6 transition-colors ${
+                isDragging ? "bg-primary/10 border-primary/40" : "hover:bg-surface-container/30"
+              }`}
+              onDragEnter={() => setIsDragging(true)}
+              onDragLeave={() => setIsDragging(false)}
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={handleDrop}
+            >
+              <div className="mb-4 text-center">
                 <CloudUploadOutlined className="text-5xl text-on-surface-variant mb-4" />
-                <h3 className="text-xl font-semibold mb-1">Drag and drop a log file</h3>
-                <p className="text-on-surface-variant">or paste your nginx logs above</p>
+                <h3 className="text-xl font-semibold mb-1">Paste nginx access logs here</h3>
+                <p className="text-on-surface-variant">You can also drag and drop a log file into this area.</p>
               </div>
+
+              <textarea
+                className="h-48 w-full resize-y rounded-xl border border-outline/60 bg-black/30 p-4 font-mono text-sm text-on-surface placeholder:text-[#8b919f] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25"
+                onChange={(event) => {
+                  setLogText(event.target.value);
+                  if (feedback) {
+                    setFeedback("");
+                  }
+                }}
+                onPaste={(event) => {
+                  const pastedText = event.clipboardData.getData("text");
+                  if (!pastedText) {
+                    return;
+                  }
+
+                  const currentSelection = event.currentTarget;
+                  const start = currentSelection.selectionStart;
+                  const end = currentSelection.selectionEnd;
+                  const nextText = `${logText.slice(0, start)}${pastedText}${logText.slice(end)}`;
+                  loadLogText(nextText, "paste");
+                  event.preventDefault();
+                }}
+                placeholder='203.0.113.1 - - [24/Apr/2026:10:12:45 +0000] "GET / HTTP/1.1" 200 1234 "-" "Mozilla/5.0"'
+                spellCheck={false}
+                value={logText}
+              />
+
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-on-surface-variant">
+                <span>{nonEmptyLines} non-empty lines detected</span>
+                <button
+                  className="rounded-md border border-outline/40 px-3 py-1 text-on-surface transition-colors hover:bg-surface-container-high"
+                  onClick={() => {
+                    setLogText("");
+                    setFeedback("");
+                  }}
+                  type="button"
+                >
+                  Clear
+                </button>
+              </div>
+              {feedback ? <p className="mt-3 text-sm text-primary">{feedback}</p> : null}
             </div>
 
             {/* Action Buttons */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
-              <button className="flex items-center justify-center gap-2 bg-[#2F80ED] hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors" type="button">
+              <button
+                className="flex items-center justify-center gap-2 bg-[#2F80ED] hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+                disabled={!logText.trim()}
+                onClick={handleAnalyzeLogs}
+                type="button"
+              >
                 <FileTextOutlined className="text-xl" />
                 Analyze Logs
               </button>
-              <button className="flex items-center justify-center gap-2 bg-surface-container-high hover:bg-surface-container-high/80 border border-outline text-white font-semibold py-3 px-6 rounded-lg transition-colors" type="button">
+              <button
+                className="flex items-center justify-center gap-2 bg-surface-container-high hover:bg-surface-container-high/80 border border-outline text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+                onClick={() => fileInputRef.current?.click()}
+                type="button"
+              >
                 <UploadOutlined className="text-xl" />
                 Upload File
               </button>
@@ -122,6 +252,14 @@ export default function AnalyticsPage() {
                 Try Demo
               </a>
             </div>
+
+            <input
+              accept=".log,.txt,text/plain"
+              className="hidden"
+              onChange={handleFileChange}
+              ref={fileInputRef}
+              type="file"
+            />
 
             {/* Supported Formats Card */}
             <div className="mt-8 bg-surface-container border border-outline rounded-lg p-6">
