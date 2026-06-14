@@ -10,6 +10,7 @@ import {
 } from "@ant-design/icons";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useLanguage } from "@/context/LanguageContext";
 import {
   Cell,
   Pie,
@@ -19,13 +20,14 @@ import {
 } from "recharts";
 
 const tooltipStyle = {
-  backgroundColor: "#171717",
-  borderColor: "rgba(139,145,159,0.25)",
-  color: "#e2e2e2",
+  backgroundColor: "var(--surface-container-high)",
+  borderColor: "var(--outline-variant)",
+  color: "var(--on-surface)",
   borderRadius: 10,
 };
 
 export default function AnalysisResultPage() {
+  const { language, t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [realData, setRealData] = useState<any>(null);
 
@@ -58,18 +60,18 @@ export default function AnalysisResultPage() {
   const botPercentage = totalCount > 0 ? ((botCount / totalCount) * 100).toFixed(1) : "0";
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-[#e2e2e2] selection:bg-primary/30">
-      <nav className="sticky top-0 z-50 flex h-16 w-full items-center justify-between border-b border-[#353535]/15 bg-[#131313]/80 backdrop-blur-md px-6">
+    <div className="min-h-screen bg-background text-on-surface selection:bg-primary/30">
+      <nav className="sticky top-0 z-50 flex h-16 w-full items-center justify-between border-b border-outline-variant/15 bg-background/80 backdrop-blur-md px-6">
         <div className="flex items-center gap-8">
-          <Link href="/" className="text-xl font-bold tracking-tighter text-[#abc7ff]">Log Curator</Link>
+          <Link href="/" className="text-xl font-bold tracking-tighter text-primary">Log Curator</Link>
           <div className="hidden gap-6 md:flex text-sm font-medium">
-            <Link className="text-[#A1A1AA] hover:text-[#e2e2e2] transition-colors" href="/analytics">Analytics</Link>
-            <Link className="text-[#abc7ff] border-b-2 border-[#abc7ff] pb-1" href="/analysis-result">Report</Link>
-            <Link className="text-[#A1A1AA] hover:text-[#e2e2e2] transition-colors" href="/demo">Demo Workspace</Link>
+            <Link className="text-on-surface-variant/70 hover:text-on-surface transition-colors" href="/analytics">{t("navbar.analytics")}</Link>
+            <Link className="text-primary border-b-2 border-primary pb-1" href="/analysis-result">{language === "vi" ? "Báo cáo" : "Report"}</Link>
+            <Link className="text-on-surface-variant/70 hover:text-on-surface transition-colors" href="/demo">{language === "vi" ? "Không gian trải nghiệm" : "Demo Workspace"}</Link>
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <button className="rounded-xl p-2 text-[#A1A1AA] hover:bg-[#353535]/40 transition-colors"><BellOutlined /></button>
+          <button className="rounded-xl p-2 text-on-surface-variant/70 hover:bg-surface-container-high/40 transition-colors"><BellOutlined /></button>
           <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-primary to-primary-container" />
         </div>
       </nav>
@@ -78,57 +80,57 @@ export default function AnalysisResultPage() {
         <header>
           <div className="flex items-center gap-3 text-primary mb-2">
             <RobotOutlined />
-            <span className="text-xs uppercase tracking-[0.2em] font-semibold">AI Security Intelligence</span>
+            <span className="text-xs uppercase tracking-[0.2em] font-semibold">{t("report.liveWorkspace")}</span>
           </div>
-          <h1 className="text-4xl font-bold tracking-tight">Analysis Report</h1>
-          <p className="text-[#A1A1AA] mt-2 italic">Detailed breakdown of traffic patterns and security threats detected by our AI model.</p>
+          <h1 className="text-4xl font-bold tracking-tight">{t("report.title")}</h1>
+          <p className="text-[#A1A1AA] mt-2 italic">{t("report.subtitle")}</p>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Summary Card */}
-          <div className="lg:col-span-2 rounded-2xl border border-[#353535]/30 bg-[#161616] p-8 relative overflow-hidden">
+          <div className="lg:col-span-2 rounded-2xl border border-outline-variant/30 bg-surface-container-low p-8 relative overflow-hidden">
             <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/5 blur-[80px]" />
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
               <div className="space-y-1">
-                <p className="text-xs text-[#A1A1AA] uppercase font-bold tracking-wider">Total Traffic</p>
+                <p className="text-xs text-[#A1A1AA] uppercase font-bold tracking-wider">{language === "vi" ? "TỔNG LƯU LƯỢNG" : "TOTAL TRAFFIC"}</p>
                 <p className="text-4xl font-bold text-white">{totalCount}</p>
-                <p className="text-xs text-green-400">Analyzed via Batch API</p>
+                <p className="text-xs text-green-400">{language === "vi" ? "Phân tích qua Batch API" : "Analyzed via Batch API"}</p>
               </div>
               <div className="space-y-1">
-                <p className="text-xs text-[#A1A1AA] uppercase font-bold tracking-wider">Bot Detection</p>
+                <p className="text-xs text-[#A1A1AA] uppercase font-bold tracking-wider">{language === "vi" ? "PHÁT HIỆN BOT" : "BOT DETECTION"}</p>
                 <p className="text-4xl font-bold text-[#eb4349]">{botCount}</p>
-                <p className="text-xs text-error/60">High Confidence Matches</p>
+                <p className="text-xs text-error/60">{language === "vi" ? "Trùng khớp độ tin cậy cao" : "High Confidence Matches"}</p>
               </div>
               <div className="space-y-1">
-                <p className="text-xs text-[#A1A1AA] uppercase font-bold tracking-wider">Threat Level</p>
+                <p className="text-xs text-[#A1A1AA] uppercase font-bold tracking-wider">{language === "vi" ? "MỨC ĐỘ NGUY HIỂM" : "THREAT LEVEL"}</p>
                 <p className={`text-4xl font-bold ${+botPercentage > 30 ? 'text-error' : 'text-primary'}`}>
-                  {+botPercentage > 30 ? 'High' : 'Moderate'}
+                  {+botPercentage > 30 ? (language === "vi" ? 'Cao' : 'High') : (language === "vi" ? 'Trung bình' : 'Moderate')}
                 </p>
-                <p className="text-xs text-outline">{botPercentage}% Bot Ratio</p>
+                <p className="text-xs text-outline">{botPercentage}% {language === "vi" ? "Tỷ lệ Bot" : "Bot Ratio"}</p>
               </div>
             </div>
 
-            <div className="mt-12 p-6 rounded-xl bg-black/40 border border-[#353535]/50">
+            <div className="mt-12 p-6 rounded-xl bg-surface-container-high/40 border border-outline-variant/30">
               <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                <RadarChartOutlined className="text-primary" /> Key Findings
+                <RadarChartOutlined className="text-primary" /> {language === "vi" ? "Phát hiện chính" : "Key Findings"}
               </h3>
               <ul className="space-y-3 text-sm text-[#A1A1AA]">
                 <li className="flex gap-3 items-start">
                   <span className="h-5 w-5 rounded-full bg-primary/20 flex items-center justify-center text-primary text-[10px] shrink-0 mt-0.5">1</span>
-                  <span>Model successfully identified <b className="text-white">{botCount}</b> bot instances using <b>Random Forest</b> classification.</span>
+                  <span>{language === "vi" ? <>Mô hình đã xác định thành công <b className="text-white">{botCount}</b> bot bằng thuật toán <b>Random Forest</b>.</> : <>Model successfully identified <b className="text-white">{botCount}</b> bot instances using <b>Random Forest</b> classification.</>}</span>
                 </li>
                 <li className="flex gap-3 items-start">
                   <span className="h-5 w-5 rounded-full bg-primary/20 flex items-center justify-center text-primary text-[10px] shrink-0 mt-0.5">2</span>
-                  <span>Predominant indicators include <b>abnormal session durations</b> and <b>headless user agents</b>.</span>
+                  <span>{language === "vi" ? <>Các chỉ số chính bao gồm <b>thời gian phiên bất thường</b> và <b>headless user agent</b>.</> : <>Predominant indicators include <b>abnormal session durations</b> and <b>headless user agents</b>.</>}</span>
                 </li>
               </ul>
             </div>
           </div>
 
           {/* Pie Chart Card */}
-          <div className="rounded-2xl border border-[#353535]/30 bg-[#161616] p-8 flex flex-col items-center justify-center">
-            <h3 className="text-sm font-bold uppercase tracking-widest text-[#A1A1AA] mb-6">Traffic Composition</h3>
+          <div className="rounded-2xl border border-outline-variant/30 bg-surface-container-low p-8 flex flex-col items-center justify-center">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-[#A1A1AA] mb-6">{t("report.charts.segments")}</h3>
             <div className="h-48 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -152,25 +154,25 @@ export default function AnalysisResultPage() {
             </div>
             <div className="mt-6 flex gap-6 text-xs font-bold">
               <div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-[#eb4349]" /> BOTS</div>
-              <div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-[#57cd81]" /> USERS</div>
+              <div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-[#57cd81]" /> {language === "vi" ? "NGƯỜI DÙNG" : "USERS"}</div>
             </div>
           </div>
         </div>
 
         {/* Detailed Table */}
-        <section className="rounded-2xl border border-[#353535]/30 bg-[#161616] overflow-hidden">
-          <div className="px-8 py-6 border-b border-[#353535]/30 flex items-center justify-between">
-            <h2 className="text-xl font-bold tracking-tight">Analyzed IP Sessions</h2>
+        <section className="rounded-2xl border border-outline-variant/30 bg-surface-container-low overflow-hidden">
+          <div className="px-8 py-6 border-b border-outline-variant/30 flex items-center justify-between">
+            <h2 className="text-xl font-bold tracking-tight">{t("report.table.title")}</h2>
             {loading && <span className="text-xs text-primary animate-pulse font-mono">RE-ANALYZING...</span>}
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
                 <tr className="text-[10px] uppercase tracking-widest text-[#A1A1AA] border-b border-[#353535]/10">
-                  <th className="px-8 py-4">IP Address</th>
-                  <th className="px-8 py-4">Classification</th>
-                  <th className="px-8 py-4">Visit Count</th>
-                  <th className="px-8 py-4 text-right">Model Confidence</th>
+                  <th className="px-8 py-4">{t("report.table.ip")}</th>
+                  <th className="px-8 py-4">{t("report.table.classification")}</th>
+                  <th className="px-8 py-4">{t("report.table.visits")}</th>
+                  <th className="px-8 py-4 text-right">{t("report.table.confidence")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#353535]/10">
@@ -179,16 +181,16 @@ export default function AnalysisResultPage() {
                     <td className="px-8 py-4 font-mono text-sm">{row.ip}</td>
                     <td className="px-8 py-4">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-tighter ${row.is_bot ? 'bg-error/10 text-error' : 'bg-green-500/10 text-green-400'}`}>
-                        {row.is_bot ? 'Bot Detected' : 'Verified User'}
+                        {row.is_bot ? (language === "vi" ? "Phát hiện Bot" : "Bot Detected") : (language === "vi" ? "Người dùng xác thực" : "Verified User")}
                       </span>
                     </td>
-                    <td className="px-8 py-4 text-sm font-medium text-[#A1A1AA]">{row.visit_count} reqs</td>
+                    <td className="px-8 py-4 text-sm font-medium text-[#A1A1AA]">{row.visit_count} {language === "vi" ? "yêu cầu" : "reqs"}</td>
                     <td className="px-8 py-4 text-right font-mono text-sm text-primary">{(row.confidence * 100).toFixed(1)}%</td>
                   </tr>
                 ))}
                 {!realData?.results && (
                   <tr>
-                    <td colSpan={4} className="px-8 py-20 text-center text-[#A1A1AA] italic">No log data found in session. Please upload logs on the Analytics page.</td>
+                    <td colSpan={4} className="px-8 py-20 text-center text-[#A1A1AA] italic">{t("report.table.empty")}</td>
                   </tr>
                 )}
               </tbody>

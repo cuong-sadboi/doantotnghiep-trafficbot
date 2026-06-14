@@ -13,6 +13,9 @@ export class StreamIngestState {
   @Column({ type: 'varchar', length: 2048 })
   sourceUrl!: string;
 
+  @Column({ type: 'varchar', length: 256, nullable: true })
+  apiToken?: string | null;
+
   @Column({ type: 'bigint', default: 0, transformer: BigIntTransformer })
   lastByteOffset!: number;
 

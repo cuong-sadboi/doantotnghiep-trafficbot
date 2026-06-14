@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "@/app/globals.css";
 import { AntdRegistry } from "@ant-design/nextjs-registry";
+import { LanguageProvider } from "@/context/LanguageContext";
+import ThemeInitializer from "@/components/ThemeInitializer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,9 +29,15 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
+      <head>
+        <ThemeInitializer />
+      </head>
       <body className="min-h-full flex flex-col" suppressHydrationWarning={true}>
-        <AntdRegistry>{children}</AntdRegistry>
+        <LanguageProvider>
+          <AntdRegistry>{children}</AntdRegistry>
+        </LanguageProvider>
       </body>
     </html>
   );

@@ -16,6 +16,9 @@ import {
 } from "@ant-design/icons";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import DashboardSidebar from "@/components/DashboardSidebar";
+import NavbarAuthArea from "@/components/NavbarAuthArea";
+import { useLanguage } from "@/context/LanguageContext";
 import {
   Bar,
   BarChart,
@@ -44,13 +47,14 @@ const transferData = [
 ];
 
 const tooltipStyle = {
-  backgroundColor: "#171717",
-  borderColor: "rgba(139,145,159,0.25)",
-  color: "#e2e2e2",
+  backgroundColor: "var(--surface-container-high)",
+  borderColor: "var(--outline-variant)",
+  color: "var(--on-surface)",
   borderRadius: 10,
 };
 
 export default function DemoPage() {
+  const { language, t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [realData, setRealData] = useState<any>(null);
 
@@ -113,53 +117,48 @@ export default function DemoPage() {
   const totalCount = realData ? realData.total : 265;
 
   return (
-    <div className="selection:bg-primary/30 selection:text-primary">
-      <nav className="sticky top-0 z-50 flex h-16 w-full items-center justify-between border-b border-[#353535]/15 bg-[#131313] px-6 font-sans font-medium tracking-tight">
-        <div className="flex items-center gap-8">
-          <span className="text-xl font-bold tracking-tighter text-[#abc7ff]">Log Curator</span>
-          <div className="hidden gap-6 md:flex">
-            <Link className="text-[#A1A1AA] transition-colors hover:bg-[#353535]/40 hover:text-[#e2e2e2]" href="/">
-              Dashboard
-            </Link>
-            <Link className="border-b-2 border-[#abc7ff] pb-1 text-[#abc7ff] transition-colors hover:bg-[#353535]/40" href="/analytics">
-              Analytics
-            </Link>
-            <a className="text-[#A1A1AA] transition-colors hover:bg-[#353535]/40 hover:text-[#e2e2e2]" href="/streams">
-              Streams
-            </a>
-            <a className="text-[#A1A1AA] transition-colors hover:bg-[#353535]/40 hover:text-[#e2e2e2]" href="#">
-              Incidents
-            </a>
-            <a className="text-[#A1A1AA] transition-colors hover:bg-[#353535]/40 hover:text-[#e2e2e2]" href="#">
-              Settings
-            </a>
+    <div className="selection:bg-primary/30 selection:text-primary flex">
+      <div className="flex flex-1 flex-col overflow-x-hidden">
+        <nav className="sticky top-0 z-50 flex h-16 w-full items-center justify-between border-b border-outline-variant/15 bg-background px-6 font-sans font-medium tracking-tight">
+          <div className="flex items-center gap-8">
+            <span className="text-xl font-bold tracking-tighter text-primary">Log Curator</span>
+            <div className="hidden gap-6 md:flex">
+              <Link className="text-on-surface-variant/70 transition-colors hover:bg-surface-container-high/40 hover:text-on-surface" href="/">
+                {t("navbar.dashboard")}
+              </Link>
+              <Link className="border-b-2 border-primary pb-1 text-primary transition-colors hover:bg-surface-container-high/40" href="/analytics">
+                {t("navbar.analytics")}
+              </Link>
+              <a className="text-on-surface-variant/70 transition-colors hover:bg-surface-container-high/40 hover:text-on-surface" href="/streams">
+                {t("navbar.streams")}
+              </a>
+              <a className="text-on-surface-variant/70 transition-colors hover:bg-surface-container-high/40 hover:text-on-surface" href="/incidents">
+                {t("navbar.incidents")}
+              </a>
+              <a className="text-on-surface-variant/70 transition-colors hover:bg-surface-container-high/40 hover:text-on-surface" href="/settings">
+                {t("navbar.settings")}
+              </a>
+            </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-4">
-          <div className="relative hidden lg:block">
-            <SearchOutlined className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[#A1A1AA]" />
-            <input
-              className="w-72 rounded-xl border border-outline-variant/40 bg-surface-container-lowest/90 py-2 pl-10 pr-4 text-sm font-mono text-on-surface placeholder:text-[#8b919f] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
-              placeholder="Search logs..."
-              type="text"
-            />
+          <div className="flex items-center gap-4">
+            <div className="relative hidden lg:block">
+              <SearchOutlined className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[#A1A1AA]" />
+              <input
+                className="w-72 rounded-xl border border-outline-variant/40 bg-surface-container-lowest/90 py-2 pl-10 pr-4 text-sm font-mono text-on-surface placeholder:text-[#8b919f] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+                placeholder={t("navbar.search")}
+                type="text"
+              />
+            </div>
+            <button className="rounded-xl p-2 text-[#A1A1AA] transition-colors hover:bg-[#353535]/40" type="button">
+              <BellOutlined className="text-base" />
+            </button>
+            <button className="rounded-xl p-2 text-[#A1A1AA] transition-colors hover:bg-[#353535]/40" type="button">
+              <CodeOutlined className="text-base" />
+            </button>
+            <NavbarAuthArea />
           </div>
-          <button className="rounded-xl p-2 text-[#A1A1AA] transition-colors hover:bg-[#353535]/40" type="button">
-            <BellOutlined className="text-base" />
-          </button>
-          <button className="rounded-xl p-2 text-[#A1A1AA] transition-colors hover:bg-[#353535]/40" type="button">
-            <CodeOutlined className="text-base" />
-          </button>
-          <div className="h-8 w-8 overflow-hidden rounded-full border border-outline-variant/30 bg-surface-container-high">
-            <img
-              alt="User profile"
-              className="h-full w-full object-cover"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuBalHK2ZIt9renDt-yTGD_clOyQbaOFk5fhR-lee4vytkfnO4317aLX0NULJkhF_uDuMWFZCbQKlOf3ufbv-I9kyAnBG1lh15Vxda7v4m5NEekd_ToxcweQnHqCIQQELY7fG-bAc86AM12Hb9Tr1aY9LW3KPotzUSsCF5VLuxjajsg3tQ64AdSvw_ZHynOqyDXdwcV-piTDzYPv8tjagQt24AgjflQJJlpQBkI6zrSm_4Cm34J4NEBjO_u57kH1c4VYnaHA3lkJNcs"
-            />
-          </div>
-        </div>
-      </nav>
+        </nav>
 
       <main className="relative overflow-hidden bg-surface px-6 pb-20 pt-10">
         <div className="pointer-events-none absolute -left-20 top-24 h-72 w-72 rounded-full bg-primary/10 blur-[110px]" />
@@ -168,44 +167,44 @@ export default function DemoPage() {
         <div className="relative mx-auto max-w-7xl space-y-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="font-label text-xs uppercase tracking-[0.22em] text-primary">Realtime Analysis Workspace</p>
-              <h1 className="mt-2 text-4xl font-bold tracking-tight text-on-surface md:text-5xl">Traffic Intelligence Demo</h1>
-              <p className="mt-2 max-w-3xl text-on-surface-variant">Interactive charts are now powered by Recharts for clearer trend reading and richer drilldown context.</p>
+              <p className="font-label text-xs uppercase tracking-[0.22em] text-primary">{t("demo.liveWorkspace")}</p>
+              <h1 className="mt-2 text-4xl font-bold tracking-tight text-on-surface md:text-5xl">{t("demo.title")}</h1>
+              <p className="mt-2 max-w-3xl text-on-surface-variant">{t("demo.subtitle")}</p>
             </div>
             <div className="rounded-xl border border-outline-variant/20 bg-surface-container-low px-4 py-3 font-mono text-xs text-outline">
-              Updated: 21 Apr 2026
+              {t("demo.updated")}
             </div>
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
             <div className="rounded-xl border border-outline-variant/10 bg-surface-container-low p-5">
               <p className="mb-4 flex items-center gap-2 text-sm text-on-surface-variant">
-                <LineChartOutlined className="text-primary" /> Total Requests
+                <LineChartOutlined className="text-primary" /> {t("demo.kpis.totalReqs")}
               </p>
               <p className="text-4xl font-bold tracking-tight">{realData ? realData.total : 265}</p>
               <p className="mt-2 flex items-center gap-2 text-base text-error">
-                <ArrowDownOutlined /> <span className="text-sm">60.8% success</span>
+                <ArrowDownOutlined /> <span className="text-sm">60.8% {t("demo.kpis.success")}</span>
               </p>
             </div>
             <div className="rounded-xl border border-outline-variant/10 bg-surface-container-low p-5">
               <p className="mb-4 flex items-center gap-2 text-sm text-on-surface-variant">
-                <UserOutlined className="text-primary" /> Unique IPs
+                <UserOutlined className="text-primary" /> {t("demo.kpis.uniqueIps")}
               </p>
               <p className="text-4xl font-bold tracking-tight">{realData?.results?.length ?? 26}</p>
             </div>
             <div className="rounded-xl border border-outline-variant/10 bg-surface-container-low p-5">
               <p className="mb-4 flex items-center gap-2 text-sm text-on-surface-variant">
-                <DatabaseOutlined className="text-primary" /> Total Bandwidth
+                <DatabaseOutlined className="text-primary" /> {t("demo.kpis.bandwidth")}
               </p>
               <p className="text-4xl font-bold tracking-tight">77.15 MB</p>
             </div>
             <div className="rounded-xl border border-outline-variant/10 bg-surface-container-low p-5">
               <p className="mb-4 flex items-center gap-2 text-sm text-on-surface-variant">
-                <GlobalOutlined className="text-primary" /> Avg Response Size
+                <GlobalOutlined className="text-primary" /> {t("demo.kpis.avgResponse")}
               </p>
               <p className="text-4xl font-bold tracking-tight">298.13 KB</p>
               <p className="mt-2 flex items-center gap-2 text-base text-green-400">
-                <ArrowUpOutlined /> <span className="text-sm">11% errors</span>
+                <ArrowUpOutlined /> <span className="text-sm">11% {t("demo.kpis.errors")}</span>
               </p>
             </div>
           </div>
@@ -213,7 +212,7 @@ export default function DemoPage() {
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
             <div className="rounded-xl border border-outline-variant/10 bg-surface-container-low p-6">
               <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-3xl font-bold tracking-tight text-on-surface">Requests <span className="text-lg text-outline">{realData ? realData.total : 265}</span></h3>
+                <h3 className="text-3xl font-bold tracking-tight text-on-surface">{language === "vi" ? "Yêu cầu" : "Requests"} <span className="text-lg text-outline">{realData ? realData.total : 265}</span></h3>
                 <div className="font-mono text-xs uppercase text-outline">2xx 4xx 5xx</div>
               </div>
               <div className="h-64">
@@ -234,7 +233,7 @@ export default function DemoPage() {
 
             <div className="rounded-xl border border-outline-variant/10 bg-surface-container-low p-6">
               <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-3xl font-bold tracking-tight text-on-surface">Data Transfer <span className="text-lg text-outline">77.15 MB</span></h3>
+                <h3 className="text-3xl font-bold tracking-tight text-on-surface">{t("demo.charts.transfer")} <span className="text-lg text-outline">77.15 MB</span></h3>
               </div>
               <div className="h-64">
                 <ResponsiveContainer height="100%" width="100%">
@@ -252,7 +251,7 @@ export default function DemoPage() {
 
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
             <div className="rounded-xl border border-outline-variant/10 bg-surface-container-low p-6">
-              <h3 className="mb-6 text-2xl font-bold tracking-tight">HTTP Status Codes</h3>
+              <h3 className="mb-6 text-2xl font-bold tracking-tight">{t("demo.charts.statusCodes")}</h3>
               <div className="h-52">
                 <ResponsiveContainer height="100%" width="100%">
                   <PieChart>
@@ -279,7 +278,7 @@ export default function DemoPage() {
             </div>
 
             <div className="rounded-xl border border-outline-variant/10 bg-surface-container-low p-6">
-              <h3 className="mb-6 text-2xl font-bold tracking-tight">Traffic Segments</h3>
+              <h3 className="mb-6 text-2xl font-bold tracking-tight">{t("demo.charts.segments")}</h3>
               <div className="h-52">
                 <ResponsiveContainer height="100%" width="100%">
                   <PieChart>
@@ -293,27 +292,30 @@ export default function DemoPage() {
                 </ResponsiveContainer>
               </div>
               <div className="space-y-2">
-                {browserData.map((item) => (
-                  <div className="flex items-center justify-between text-sm" key={item.name}>
-                    <span className="flex items-center gap-2 text-on-surface">
-                      <span className="h-3 w-3 rounded" style={{ backgroundColor: item.color }} />
-                      {item.name}
-                    </span>
-                    <span className="text-on-surface-variant">{item.value} ({((item.value / browserData.reduce((s, i) => s + i.value, 0)) * 100).toFixed(1)}%)</span>
-                  </div>
-                ))}
+                {browserData.map((item) => {
+                  const translatedName = item.name === "Real User" ? (language === "vi" ? "Người dùng thật" : "Real User") : item.name === "Bots" ? "Bots" : item.name;
+                  return (
+                    <div className="flex items-center justify-between text-sm" key={item.name}>
+                      <span className="flex items-center gap-2 text-on-surface">
+                        <span className="h-3 w-3 rounded" style={{ backgroundColor: item.color }} />
+                        {translatedName}
+                      </span>
+                      <span className="text-on-surface-variant">{item.value} ({((item.value / browserData.reduce((s, i) => s + i.value, 0)) * 100).toFixed(1)}%)</span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
             <div className="rounded-xl border border-outline-variant/10 bg-surface-container-low p-6">
-              <h3 className="mb-6 text-2xl font-bold tracking-tight">AI Insights</h3>
+              <h3 className="mb-6 text-2xl font-bold tracking-tight">{t("demo.charts.aiInsights")}</h3>
               <div className="space-y-4">
                 <div className="p-4 rounded-lg bg-surface-container-high/50 border border-outline/20">
-                  <p className="text-xs text-outline uppercase tracking-wider mb-1">Bot Detection Accuracy</p>
+                  <p className="text-xs text-outline uppercase tracking-wider mb-1">{t("demo.charts.accuracy")}</p>
                   <p className="text-2xl font-bold text-primary">~91% (Random Forest)</p>
                 </div>
                 <div className="p-4 rounded-lg bg-surface-container-high/50 border border-outline/20">
-                  <p className="text-xs text-outline uppercase tracking-wider mb-1">Top Bot Indicator</p>
+                  <p className="text-xs text-outline uppercase tracking-wider mb-1">{t("demo.charts.topIndicator")}</p>
                   <p className="text-xl font-semibold">is_headless / session_duration</p>
                 </div>
               </div>
@@ -324,14 +326,14 @@ export default function DemoPage() {
             <div className="rounded-xl border border-outline-variant/10 bg-surface-container-low p-6">
               <div className="mb-6 flex items-center justify-between">
                 <h3 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
-                  <RobotOutlined className="text-on-surface-variant" /> AI Bot Analysis
+                  <RobotOutlined className="text-on-surface-variant" /> {t("demo.analysis.title")}
                 </h3>
-                <span className="rounded-lg bg-surface-container-high px-3 py-1 font-mono text-sm">{botCount} detected</span>
+                <span className="rounded-lg bg-surface-container-high px-3 py-1 font-mono text-sm">{botCount} {t("demo.analysis.detected")}</span>
               </div>
               <div className="mb-8 flex items-center justify-between">
                 <div>
                   <div className="text-4xl font-bold tracking-tight">{botPercentage}%</div>
-                  <div className="text-lg text-on-surface-variant">of analyzed traffic</div>
+                  <div className="text-lg text-on-surface-variant">{t("demo.analysis.ratio")}</div>
                 </div>
                 <div className="h-28 w-28">
                   <ResponsiveContainer height="100%" width="100%">
@@ -358,7 +360,7 @@ export default function DemoPage() {
 
             <div className="rounded-xl border border-outline-variant/10 bg-surface-container-low p-6">
               <h3 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-on-surface mb-6">
-                <RadarChartOutlined className="text-primary" /> Top Suspected Bot IPs
+                <RadarChartOutlined className="text-primary" /> {t("demo.analysis.topIps")}
               </h3>
               <div className="space-y-3">
                 {realData?.results ? realData.results.filter((r: any) => r.is_bot).slice(0, 5).map((r: any) => (
@@ -366,7 +368,7 @@ export default function DemoPage() {
                     <span className="font-mono">{r.ip}</span>
                     <span className="text-error font-semibold">{(r.confidence * 100).toFixed(0)}% Bot</span>
                   </div>
-                )) : <p className="text-outline italic">No bots detected in this sample.</p>}
+                )) : <p className="text-outline italic">{language === "vi" ? "Không phát hiện bot nào trong mẫu này." : "No bots detected in this sample."}</p>}
               </div>
             </div>
           </div>
@@ -374,19 +376,19 @@ export default function DemoPage() {
           <div className="overflow-hidden rounded-xl border border-outline-variant/10 bg-surface-container-low">
             <div className="flex items-center justify-between border-b border-outline-variant/10 px-6 py-4">
               <h3 className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-on-surface">
-                <RadarChartOutlined className="text-primary" /> Analyzed Session Details
+                <RadarChartOutlined className="text-primary" /> {t("demo.analysis.tableTitle")}
               </h3>
-              {loading && <span className="text-primary animate-pulse text-sm">Analyzing via AI Service...</span>}
+              {loading && <span className="text-primary animate-pulse text-sm">{t("demo.analysis.analyzing")}</span>}
             </div>
 
             <div className="overflow-x-auto p-6 no-scrollbar">
               <table className="w-full text-left">
                 <thead>
                   <tr className="border-b border-outline-variant/10 font-mono text-[11px] uppercase tracking-[0.18em] text-outline">
-                    <th className="pb-4">IP Address</th>
-                    <th className="pb-4">Type</th>
-                    <th className="pb-4 text-right">Visits</th>
-                    <th className="pb-4 text-right">Confidence</th>
+                    <th className="pb-4">{t("demo.analysis.ip")}</th>
+                    <th className="pb-4">{t("demo.analysis.classification")}</th>
+                    <th className="pb-4 text-right">{t("demo.analysis.visitCount")}</th>
+                    <th className="pb-4 text-right">{t("demo.analysis.confidence")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-outline-variant/5">
@@ -395,7 +397,7 @@ export default function DemoPage() {
                       <td className="py-3 text-sm font-mono text-on-surface">{row.ip}</td>
                       <td className="py-3 text-sm">
                         <span className={`px-2 py-0.5 rounded-md text-xs font-semibold ${row.is_bot ? 'bg-error/20 text-error' : 'bg-green-500/20 text-green-400'}`}>
-                          {row.is_bot ? 'BOT' : 'REAL USER'}
+                          {row.is_bot ? 'BOT' : language === "vi" ? 'NGƯỜI DÙNG' : 'REAL USER'}
                         </span>
                       </td>
                       <td className="py-3 text-right text-sm font-semibold text-on-surface">{row.visit_count}</td>
@@ -411,13 +413,15 @@ export default function DemoPage() {
 
       <footer className="border-t border-outline/20 px-6 py-8 text-xs text-on-surface-variant">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 sm:flex-row">
-          <span>Realtime analytics demo rendered entirely in your browser.</span>
+          <span>{language === "vi" ? "Bản demo phân tích thời gian thực chạy hoàn toàn trên trình duyệt của bạn." : "Realtime analytics demo rendered entirely in your browser."}</span>
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-sm">lock</span>
-            <span>Your logs never leave your machine</span>
+            <span>{language === "vi" ? "Log của bạn không bao giờ rời khỏi thiết bị của bạn" : "Your logs never leave your machine"}</span>
           </div>
         </div>
       </footer>
+      </div>
+      <DashboardSidebar />
     </div>
   );
 }

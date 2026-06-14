@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, MoreThanOrEqual, Between, LessThanOrEqual } from 'typeorm';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
@@ -14,9 +14,9 @@ export class StreamsService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(StreamsService.name);
   private intervalId: NodeJS.Timeout | null = null;
   private isPolling = false;
-  private readonly sourceKey: string;
-  private readonly sourceUrl: string;
-  private readonly apiToken: string;
+  private sourceKey: string;
+  private sourceUrl: string;
+  private apiToken: string;
   private readonly pollIntervalMs: number;
 
   constructor(
@@ -31,6 +31,41 @@ export class StreamsService implements OnModuleInit, OnModuleDestroy {
     this.sourceUrl = this.configService.get<string>('STREAM_SOURCE_URL') ?? '';
     this.apiToken = this.configService.get<string>('STREAM_API_TOKEN') ?? '';
     this.pollIntervalMs = Number(this.configService.get<string>('STREAM_POLL_INTERVAL_MS') ?? 60000);
+  }
+
+  async updateConfig(sourceUrl: string, apiToken: string, sourceKey = 'custom_site') {
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+      this.intervalId = null;
+    }
+
+    this.sourceUrl = sourceUrl;
+    this.apiToken = apiToken;
+    this.sourceKey = sourceKey;
+
+    try {
+      // Clear all log entries in DB so we don't mix logs
+      await this.entryRepository.clear();
+
+      // Update/Create state in DB
+      const state = await this.getOrCreateState();
+      state.sourceUrl = sourceUrl;
+      state.lastByteOffset = 0;
+      state.lastPartialLine = null;
+      await this.stateRepository.save(state);
+
+      this.logger.log(`Stream configuration updated. Source: ${sourceUrl}, Key: ${sourceKey}`);
+
+      // Start fetching immediately
+      await this.pollOnce();
+    } catch (err: any) {
+      this.logger.error(`Failed to apply new stream config: ${err?.message}`);
+    }
+
+    // Restart the polling interval
+    this.intervalId = setInterval(() => this.pollOnce(), this.pollIntervalMs);
+
+    return { success: true };
   }
 
   onModuleInit() {
@@ -49,15 +84,52 @@ export class StreamsService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async getEntries(limit = 200, offset = 0) {
-    const take = Math.min(Math.max(limit, 1), 500);
-    const skip = Math.max(offset, 0);
+  async getEntries(limit = 200, offset = 0, timeframe?: string, startDate?: string, endDate?: string) {
+    let whereClause: any = {};
 
-    return this.entryRepository.find({
+    if (startDate || endDate) {
+      const start = startDate ? new Date(startDate) : null;
+      const end = endDate ? new Date(endDate) : null;
+
+      if (start && end) {
+        whereClause.loggedAt = Between(start, end);
+      } else if (start) {
+        whereClause.loggedAt = MoreThanOrEqual(start);
+      } else if (end) {
+        whereClause.loggedAt = LessThanOrEqual(end);
+      }
+    } else if (timeframe) {
+      const now = new Date();
+      let startDate = new Date();
+
+      if (timeframe === 'day') {
+        startDate.setHours(0, 0, 0, 0);
+      } else if (timeframe === 'week') {
+        const day = startDate.getDay();
+        const diff = startDate.getDate() - day + (day === 0 ? -6 : 1);
+        startDate = new Date(startDate.setDate(diff));
+        startDate.setHours(0, 0, 0, 0);
+      } else if (timeframe === 'month') {
+        startDate.setDate(1);
+        startDate.setHours(0, 0, 0, 0);
+      }
+
+      whereClause = {
+        loggedAt: MoreThanOrEqual(startDate),
+      };
+    }
+
+    const findOptions: any = {
+      where: whereClause,
       order: { loggedAt: 'DESC', id: 'DESC' },
-      take,
-      skip,
-    });
+    };
+
+    if (!timeframe && !startDate && !endDate) {
+      findOptions.take = Math.min(Math.max(limit, 1), 500);
+      findOptions.skip = Math.max(offset, 0);
+    }
+
+    return this.entryRepository.find(findOptions);
   }
 
   async getStatus() {
@@ -68,6 +140,11 @@ export class StreamsService implements OnModuleInit, OnModuleDestroy {
       lastByteOffset: state?.lastByteOffset ?? 0,
       updatedAt: state?.updatedAt ?? null,
     };
+  }
+
+  async sync() {
+    await this.pollOnce();
+    return this.getStatus();
   }
 
   private async pollOnce() {
@@ -96,7 +173,10 @@ export class StreamsService implements OnModuleInit, OnModuleDestroy {
       }
 
       if (currentBytes === startOffset) {
-        await this.stateRepository.save({ ...state, lastByteOffset: currentBytes });
+        await this.stateRepository.update(
+          { sourceKey: this.sourceKey },
+          { updatedAt: new Date() }
+        );
         return;
       }
 

@@ -15,6 +15,7 @@ import {
 } from "@ant-design/icons";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useLanguage } from "@/context/LanguageContext";
 import {
   Bar,
   BarChart,
@@ -32,13 +33,14 @@ import {
 } from "recharts";
 
 const tooltipStyle = {
-  backgroundColor: "#171717",
-  borderColor: "rgba(139,145,159,0.25)",
-  color: "#e2e2e2",
+  backgroundColor: "var(--surface-container-high)",
+  borderColor: "var(--outline-variant)",
+  color: "var(--on-surface)",
   borderRadius: 10,
 };
 
 export default function AnalysisDemoPage() {
+  const { language, t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [realData, setRealData] = useState<any>(null);
 
@@ -87,13 +89,13 @@ export default function AnalysisDemoPage() {
 
   return (
     <div className="selection:bg-primary/30 selection:text-primary min-h-screen bg-surface">
-      <nav className="sticky top-0 z-50 flex h-16 w-full items-center justify-between border-b border-[#353535]/15 bg-[#131313] px-6 font-sans font-medium tracking-tight">
+      <nav className="sticky top-0 z-50 flex h-16 w-full items-center justify-between border-b border-outline-variant/15 bg-background px-6 font-sans font-medium tracking-tight">
         <div className="flex items-center gap-8">
-          <Link href="/" className="text-xl font-bold tracking-tighter text-[#abc7ff]">Log Curator</Link>
+          <Link href="/" className="text-xl font-bold tracking-tighter text-primary">Log Curator</Link>
           <div className="hidden gap-6 md:flex">
-            <Link className="text-[#A1A1AA] hover:text-[#e2e2e2] transition-colors" href="/analytics">Analytics</Link>
-            <Link className="text-[#A1A1AA] hover:text-[#e2e2e2] transition-colors" href="/analysis/result">Report</Link>
-            <Link className="text-[#abc7ff] border-b-2 border-[#abc7ff] pb-1" href="/analysis/demo">Demo Workspace</Link>
+            <Link className="text-on-surface-variant/70 hover:text-on-surface transition-colors" href="/analytics">{t("navbar.analytics")}</Link>
+            <Link className="text-on-surface-variant/70 hover:text-on-surface transition-colors" href="/analysis/result">{language === "vi" ? "Báo cáo" : "Report"}</Link>
+            <Link className="text-primary border-b-2 border-primary pb-1" href="/analysis/demo">{language === "vi" ? "Không gian trải nghiệm" : "Demo Workspace"}</Link>
           </div>
         </div>
         <div className="flex items-center gap-4">
@@ -108,8 +110,8 @@ export default function AnalysisDemoPage() {
             <div className="p-6 rounded-full bg-surface-container-high border border-outline/20">
               <CodeOutlined className="text-4xl text-primary" />
             </div>
-            <h2 className="text-2xl font-bold">No Data Analyzed</h2>
-            <p className="text-on-surface-variant">Please upload your logs on the <Link href="/analytics" className="text-primary underline">Analytics page</Link> first.</p>
+            <h2 className="text-2xl font-bold">{language === "vi" ? "Chưa có dữ liệu phân tích" : "No Data Analyzed"}</h2>
+            <p className="text-on-surface-variant">{language === "vi" ? "Vui lòng tải log lên ở trang Phân tích trước." : "Please upload your logs on the Analytics page first."}</p>
           </div>
         )}
 
@@ -117,36 +119,36 @@ export default function AnalysisDemoPage() {
           <div className="relative mx-auto max-w-7xl space-y-6">
             <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
               <div>
-                <p className="font-label text-xs uppercase tracking-[0.22em] text-primary">Realtime Analysis Workspace</p>
-                <h1 className="mt-2 text-4xl font-bold tracking-tight text-on-surface md:text-5xl">Traffic Intelligence Demo</h1>
+                <p className="font-label text-xs uppercase tracking-[0.22em] text-primary">{t("demo.liveWorkspace")}</p>
+                <h1 className="mt-2 text-4xl font-bold tracking-tight text-on-surface md:text-5xl">{t("demo.title")}</h1>
               </div>
             </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
               <div className="rounded-xl border border-outline-variant/10 bg-surface-container-low p-5">
                 <p className="mb-4 flex items-center gap-2 text-sm text-on-surface-variant">
-                  <LineChartOutlined className="text-primary" /> Total Requests
+                  <LineChartOutlined className="text-primary" /> {t("demo.kpis.totalReqs")}
                 </p>
                 <p className="text-4xl font-bold tracking-tight">{realData?.total}</p>
                 <p className={`mt-2 flex items-center gap-2 text-sm ${+successRate > 90 ? 'text-green-400' : 'text-error'}`}>
-                   {+successRate > 90 ? <ArrowUpOutlined /> : <ArrowDownOutlined />} {successRate}% success
+                   {+successRate > 90 ? <ArrowUpOutlined /> : <ArrowDownOutlined />} {successRate}% {t("demo.kpis.success")}
                 </p>
               </div>
               <div className="rounded-xl border border-outline-variant/10 bg-surface-container-low p-5">
                 <p className="mb-4 flex items-center gap-2 text-sm text-on-surface-variant">
-                  <UserOutlined className="text-primary" /> Unique IPs
+                  <UserOutlined className="text-primary" /> {t("demo.kpis.uniqueIps")}
                 </p>
                 <p className="text-4xl font-bold tracking-tight">{realData?.results?.length}</p>
               </div>
               <div className="rounded-xl border border-outline-variant/10 bg-surface-container-low p-5">
                 <p className="mb-4 flex items-center gap-2 text-sm text-on-surface-variant">
-                  <DatabaseOutlined className="text-primary" /> Total Bandwidth
+                  <DatabaseOutlined className="text-primary" /> {t("demo.kpis.bandwidth")}
                 </p>
                 <p className="text-4xl font-bold tracking-tight">{stats?.totalBandwidth} MB</p>
               </div>
               <div className="rounded-xl border border-outline-variant/10 bg-surface-container-low p-5">
                 <p className="mb-4 flex items-center gap-2 text-sm text-on-surface-variant">
-                  <GlobalOutlined className="text-primary" /> Avg Response Size
+                  <GlobalOutlined className="text-primary" /> {t("demo.kpis.avgResponse")}
                 </p>
                 <p className="text-4xl font-bold tracking-tight">{stats?.avgResponseSize} KB</p>
               </div>
@@ -154,11 +156,11 @@ export default function AnalysisDemoPage() {
 
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
               <div className="rounded-xl border border-outline-variant/10 bg-surface-container-low p-6">
-                <h3 className="text-xl font-bold mb-4">Requests Over Time</h3>
+                <h3 className="text-xl font-bold mb-4">{t("demo.charts.reqsTime")}</h3>
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={requestsData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#353535" vertical={false} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(139,145,159,0.15)" vertical={false} />
                       <XAxis dataKey="time" stroke="#8b919f" fontSize={10} />
                       <YAxis stroke="#8b919f" fontSize={10} />
                       <Tooltip contentStyle={tooltipStyle} />
@@ -172,11 +174,11 @@ export default function AnalysisDemoPage() {
               </div>
 
               <div className="rounded-xl border border-outline-variant/10 bg-surface-container-low p-6">
-                <h3 className="text-xl font-bold mb-4">Bandwidth Usage (MB)</h3>
+                <h3 className="text-xl font-bold mb-4">{t("report.charts.transfer")}</h3>
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={transferData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#353535" vertical={false} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(139,145,159,0.15)" vertical={false} />
                       <XAxis dataKey="time" stroke="#8b919f" fontSize={10} />
                       <YAxis stroke="#8b919f" fontSize={10} />
                       <Tooltip contentStyle={tooltipStyle} />
@@ -189,7 +191,7 @@ export default function AnalysisDemoPage() {
 
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
               <div className="rounded-xl border border-outline-variant/10 bg-surface-container-low p-6">
-                <h3 className="text-lg font-bold mb-6">HTTP Status Codes</h3>
+                <h3 className="text-lg font-bold mb-6">{t("demo.charts.statusCodes")}</h3>
                 <div className="h-52">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -203,7 +205,7 @@ export default function AnalysisDemoPage() {
               </div>
 
               <div className="rounded-xl border border-outline-variant/10 bg-surface-container-low p-6">
-                <h3 className="text-lg font-bold mb-6">Traffic Segments</h3>
+                <h3 className="text-lg font-bold mb-6">{t("demo.charts.segments")}</h3>
                 <div className="h-52">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -217,14 +219,14 @@ export default function AnalysisDemoPage() {
               </div>
 
               <div className="rounded-xl border border-outline-variant/10 bg-surface-container-low p-6">
-                <h3 className="text-lg font-bold mb-6">AI Bot Insights</h3>
+                <h3 className="text-lg font-bold mb-6">{t("demo.charts.aiInsights")}</h3>
                 <div className="space-y-4">
                    <div className="p-4 rounded-lg bg-surface-container-high/50 border border-outline/20 text-center">
                       <p className="text-4xl font-bold text-error">{botPercentage}%</p>
-                      <p className="text-xs text-outline uppercase tracking-widest mt-1">Bot Traffic Ratio</p>
+                      <p className="text-xs text-outline uppercase tracking-widest mt-1">{language === "vi" ? "Tỷ lệ Bot" : "Bot Traffic Ratio"}</p>
                    </div>
                    <div className="p-4 rounded-lg bg-surface-container-high/50 border border-outline/20">
-                      <p className="text-sm font-semibold mb-2">Top Bot IPs</p>
+                      <p className="text-sm font-semibold mb-2">{t("demo.analysis.topIps")}</p>
                       <div className="space-y-1">
                         {realData?.results?.filter((r: any) => r.is_bot).slice(0, 3).map((r: any) => (
                           <div key={r.ip} className="flex justify-between text-xs font-mono">
@@ -240,16 +242,16 @@ export default function AnalysisDemoPage() {
 
             <div className="rounded-xl border border-outline-variant/10 bg-surface-container-low overflow-hidden">
               <div className="px-6 py-4 border-b border-outline-variant/10 flex justify-between items-center">
-                 <h3 className="text-xl font-bold">Analyzed IP Sessions</h3>
+                 <h3 className="text-xl font-bold">{t("demo.analysis.tableTitle")}</h3>
               </div>
               <div className="overflow-x-auto p-6">
                 <table className="w-full text-left">
                   <thead>
                     <tr className="text-xs uppercase text-outline tracking-wider border-b border-outline-variant/10">
-                      <th className="pb-3">IP Address</th>
-                      <th className="pb-3">Type</th>
-                      <th className="pb-3 text-right">Visits</th>
-                      <th className="pb-3 text-right">Confidence</th>
+                      <th className="pb-3">{t("demo.analysis.ip")}</th>
+                      <th className="pb-3">{t("demo.analysis.classification")}</th>
+                      <th className="pb-3 text-right">{t("demo.analysis.visitCount")}</th>
+                      <th className="pb-3 text-right">{t("demo.analysis.confidence")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-outline-variant/10">
@@ -258,7 +260,7 @@ export default function AnalysisDemoPage() {
                         <td className="py-4 font-mono text-sm">{row.ip}</td>
                         <td>
                           <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${row.is_bot ? 'bg-error/20 text-error' : 'bg-green-500/20 text-green-400'}`}>
-                            {row.is_bot ? 'BOT' : 'USER'}
+                            {row.is_bot ? 'BOT' : language === "vi" ? 'NGƯỜI DÙNG' : 'USER'}
                           </span>
                         </td>
                         <td className="text-right text-sm">{row.visit_count}</td>
