@@ -9,7 +9,3 @@ out/
 .env.production.local
 Dockerfile
 .dockerignore
-README.md
-eslint.config.mjs
-postcss.config.mjs
-tsconfig.json

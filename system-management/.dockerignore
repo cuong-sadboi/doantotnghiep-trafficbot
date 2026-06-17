@@ -12,9 +12,3 @@ go-api/
 data/
 db/
 test/
-README.md
-eslint.config.mjs
-.prettierrc
-nest-cli.json
-tsconfig.build.json
-tsconfig.json
