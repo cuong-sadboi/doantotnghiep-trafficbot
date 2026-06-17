@@ -26,7 +26,7 @@ export interface DashboardResponse {
   };
 }
 
-const API_BASE_URL =
+export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, '') ??
   'http://localhost:3001';
 const TOKEN_KEY = 'auth_access_token';

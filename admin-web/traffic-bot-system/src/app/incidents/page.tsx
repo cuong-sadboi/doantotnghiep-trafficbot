@@ -28,6 +28,7 @@ import {
 import DashboardSidebar from "@/components/DashboardSidebar";
 import NavbarAuthArea from "@/components/NavbarAuthArea";
 import { useLanguage } from "@/context/LanguageContext";
+import { API_BASE_URL } from "@/lib/auth-client";
 
 interface StreamEntry {
   id: string;
@@ -192,18 +193,18 @@ export default function IncidentsPage() {
 
     try {
       if (showSpinner) {
-        await fetch("http://localhost:3001/streams/sync", { method: "POST" });
+        await fetch(`${API_BASE_URL}/streams/sync`, { method: "POST" });
       }
 
       const { start, end } = calculateRange(cType, tType, cVal);
-      let url = "http://localhost:3001/streams/entries";
+      let url = `${API_BASE_URL}/streams/entries`;
       if (start && end) {
         url += `?startDate=${start.toISOString()}&endDate=${end.toISOString()}`;
       }
 
       const [entriesResponse, statusResponse] = await Promise.all([
         fetch(url),
-        fetch("http://localhost:3001/streams/status"),
+        fetch(`${API_BASE_URL}/streams/status`),
       ]);
 
       if (!entriesResponse.ok) {

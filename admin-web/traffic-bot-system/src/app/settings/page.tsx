@@ -20,6 +20,7 @@ import DashboardSidebar from "@/components/DashboardSidebar";
 import NavbarAuthArea from "@/components/NavbarAuthArea";
 import { useLanguage } from "@/context/LanguageContext";
 import { translations } from "@/lib/translations";
+import { API_BASE_URL } from "@/lib/auth-client";
 
 interface StreamStatus {
   sourceKey: string;
@@ -70,7 +71,7 @@ export default function SettingsPage() {
   const fetchStreamStatus = async () => {
     setLoadingStream(true);
     try {
-      const res = await fetch("http://localhost:3001/streams/status");
+      const res = await fetch(`${API_BASE_URL}/streams/status`);
       if (!res.ok) throw new Error(language === "vi" ? "Không thể tải trạng thái dòng dữ liệu." : "Unable to load stream status.");
       const data = (await res.json()) as StreamStatus;
       setStatus(data);
@@ -87,7 +88,7 @@ export default function SettingsPage() {
     setLoadingAI(true);
     setAiError(null);
     try {
-      const res = await fetch("http://localhost:3001/ai/model-info");
+      const res = await fetch(`${API_BASE_URL}/ai/model-info`);
       if (!res.ok) throw new Error(language === "vi" ? "Không thể kết nối tới AI Engine." : "Failed to connect to AI Engine.");
       const data = (await res.json()) as AIModelInfo;
       if (data.error) {
@@ -123,7 +124,7 @@ export default function SettingsPage() {
     setConfigSuccess(false);
 
     try {
-      const res = await fetch("http://localhost:3001/streams/config", {
+      const res = await fetch(`${API_BASE_URL}/streams/config`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -149,7 +150,7 @@ export default function SettingsPage() {
     setSyncSuccess(false);
 
     try {
-      const res = await fetch("http://localhost:3001/streams/sync", { method: "POST" });
+      const res = await fetch(`${API_BASE_URL}/streams/sync`, { method: "POST" });
       if (!res.ok) throw new Error(language === "vi" ? "Đồng bộ log thất bại." : "Log synchronization failed.");
       setSyncSuccess(true);
       fetchStreamStatus();

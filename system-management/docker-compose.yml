@@ -1,12 +1,15 @@
 services:
   mysql:
     image: mysql:8.0
+    container_name: traffic-bot-db-local
+    restart: unless-stopped
     ports:
       - "3306:3306"
     environment:
       MYSQL_ROOT_PASSWORD: 123456
       MYSQL_DATABASE: doantotnghiep
     volumes:
-      - ./data/mysql:/var/lib/mysql
+      - mysql_local_data:/var/lib/mysql
 
-    # docker compose -p system-management up -d
+volumes:
+  mysql_local_data:

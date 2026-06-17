@@ -9,6 +9,7 @@ import {
   getAccessToken,
   getDashboard,
   me,
+  API_BASE_URL,
 } from '@/lib/auth-client';
 import {
   CloseOutlined,
@@ -104,7 +105,7 @@ export default function DashboardSidebar() {
     setConfigSuccess(false);
 
     try {
-      const response = await fetch('http://localhost:3001/streams/config', {
+      const response = await fetch(`${API_BASE_URL}/streams/config`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

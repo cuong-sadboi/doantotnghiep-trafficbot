@@ -16,6 +16,7 @@ import { useEffect, useState } from "react";
 import DashboardSidebar from "@/components/DashboardSidebar";
 import NavbarAuthArea from "@/components/NavbarAuthArea";
 import { useLanguage } from "@/context/LanguageContext";
+import { API_BASE_URL } from "@/lib/auth-client";
 import {
   CartesianGrid,
   Cell,
@@ -54,7 +55,7 @@ export default function AnalysisResultPage() {
     setLoading(true);
     setErrorMessage(null);
     try {
-      const response = await fetch("http://localhost:3001/ai/analyze-logs", {
+      const response = await fetch(`${API_BASE_URL}/ai/analyze-logs`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ logText }),

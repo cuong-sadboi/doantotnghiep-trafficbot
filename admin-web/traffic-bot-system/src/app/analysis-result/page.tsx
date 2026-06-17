@@ -11,6 +11,7 @@ import {
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useLanguage } from "@/context/LanguageContext";
+import { API_BASE_URL } from "@/lib/auth-client";
 import {
   Cell,
   Pie,
@@ -41,7 +42,7 @@ export default function AnalysisResultPage() {
   const handleAnalyze = async (logText: string) => {
     setLoading(true);
     try {
-      const response = await fetch("http://localhost:3001/ai/analyze-logs", {
+      const response = await fetch(`${API_BASE_URL}/ai/analyze-logs`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ logText }),
