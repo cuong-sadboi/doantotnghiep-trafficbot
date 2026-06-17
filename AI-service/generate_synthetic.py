@@ -150,7 +150,7 @@ def generate_headless_bot():
     }
 
 
-def generate_dataset(n_real=150, n_crawler=60, n_scanner=60, n_traffic=60, n_headless=50):
+def generate_dataset(n_real=6850, n_crawler=800, n_scanner=800, n_traffic=800, n_headless=750):
     rows = []
     for _ in range(n_real):
         rows.append(generate_real_user())
