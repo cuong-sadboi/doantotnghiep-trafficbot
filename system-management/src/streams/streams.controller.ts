@@ -25,12 +25,25 @@ export class StreamsController {
 
   @Post('config')
   updateConfig(
-    @Body() body: { sourceUrl: string; apiToken: string; sourceKey?: string },
+    @Body()
+    body: {
+      sourceUrl: string;
+      apiToken: string;
+      sourceKey?: string;
+      ddosEnabled?: boolean;
+      ddosThreshold?: number;
+      ddosLimitRpm?: number;
+      ddosLimitDuration?: number;
+    },
   ) {
     return this.streamsService.updateConfig(
       body.sourceUrl,
       body.apiToken,
       body.sourceKey,
+      body.ddosEnabled,
+      body.ddosThreshold,
+      body.ddosLimitRpm,
+      body.ddosLimitDuration,
     );
   }
 

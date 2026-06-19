@@ -5,9 +5,14 @@ import { StreamsController } from './streams.controller';
 import { StreamsService } from './streams.service';
 import { StreamLogEntry } from './entities/stream-log-entry.entity';
 import { StreamIngestState } from './entities/stream-ingest-state.entity';
+import { FirewallModule } from '../firewall/firewall.module';
 
 @Module({
-  imports: [HttpModule, TypeOrmModule.forFeature([StreamLogEntry, StreamIngestState])],
+  imports: [
+    HttpModule,
+    TypeOrmModule.forFeature([StreamLogEntry, StreamIngestState]),
+    FirewallModule,
+  ],
   controllers: [StreamsController],
   providers: [StreamsService],
 })

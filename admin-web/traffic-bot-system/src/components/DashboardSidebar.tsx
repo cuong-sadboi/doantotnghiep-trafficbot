@@ -19,6 +19,7 @@ import {
   MenuUnfoldOutlined,
   SettingOutlined,
   UserOutlined,
+  SafetyCertificateOutlined,
 } from '@ant-design/icons';
 import { useLanguage } from '@/context/LanguageContext';
 
@@ -254,6 +255,13 @@ export default function DashboardSidebar() {
             </button>
 
             <Link
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-outline/25 bg-surface-container-low hover:bg-surface-container-high py-3 text-sm font-bold text-primary transition cursor-pointer"
+              href="/firewall"
+            >
+              <SafetyCertificateOutlined /> {language === 'vi' ? 'Quản lý Firewall' : 'Firewall Settings'}
+            </Link>
+
+            <Link
               className="flex w-full items-center justify-center rounded-xl bg-primary py-3 text-sm font-bold text-on-primary-container transition hover:brightness-110"
               href="/analytics"
             >
@@ -339,6 +347,14 @@ export default function DashboardSidebar() {
               >
                 <SettingOutlined /> {t('sidebar.configureStream')}
               </button>
+
+              <Link
+                onClick={() => setIsOpen(false)}
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-outline/25 bg-surface-container-low hover:bg-surface-container-high py-3 text-sm font-bold text-primary transition cursor-pointer mb-3"
+                href="/firewall"
+              >
+                <SafetyCertificateOutlined /> {language === 'vi' ? 'Quản lý Firewall' : 'Firewall Settings'}
+              </Link>
 
               <Link
                 className="block rounded-lg bg-primary/90 px-4 py-3 text-center font-bold text-on-primary-container"

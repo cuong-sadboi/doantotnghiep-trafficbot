@@ -22,6 +22,18 @@ export class StreamIngestState {
   @Column({ type: 'text', nullable: true })
   lastPartialLine?: string | null;
 
+  @Column({ type: 'boolean', default: false })
+  ddosEnabled!: boolean;
+
+  @Column({ type: 'int', default: 100 })
+  ddosThreshold!: number;
+
+  @Column({ type: 'int', default: 60 })
+  ddosLimitRpm!: number;
+
+  @Column({ type: 'int', default: 24 })
+  ddosLimitDuration!: number;
+
   @UpdateDateColumn()
   updatedAt!: Date;
 }

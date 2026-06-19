@@ -47,7 +47,7 @@ const formatTimestamp = (value?: string | null, language?: string) => {
 
 export default function SettingsPage() {
   const { language, t } = useLanguage();
-  const [activeTab, setActiveTab] = useState<"stream" | "ai" | "sync">("stream");
+  const [activeTab, setActiveTab] = useState<"stream" | "ai" | "sync" | "ddos">("stream");
   const [status, setStatus] = useState<StreamStatus | null>(null);
   const [aiInfo, setAiInfo] = useState<AIModelInfo | null>(null);
 
@@ -55,6 +55,10 @@ export default function SettingsPage() {
   const [sourceKey, setSourceKey] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
   const [apiToken, setApiToken] = useState("");
+  const [ddosEnabled, setDdosEnabled] = useState(false);
+  const [ddosThreshold, setDdosThreshold] = useState(100);
+  const [ddosLimitRpm, setDdosLimitRpm] = useState(60);
+  const [ddosLimitDuration, setDdosLimitDuration] = useState(24);
 
   // Loading & notification states
   const [loadingStream, setLoadingStream] = useState(true);
@@ -77,6 +81,11 @@ export default function SettingsPage() {
       setStatus(data);
       setSourceKey(data.sourceKey || "");
       setSourceUrl(data.sourceUrl || "");
+      if ((data as any).apiToken) setApiToken((data as any).apiToken);
+      setDdosEnabled((data as any).ddosEnabled ?? false);
+      setDdosThreshold((data as any).ddosThreshold ?? 100);
+      setDdosLimitRpm((data as any).ddosLimitRpm ?? 60);
+      setDdosLimitDuration((data as any).ddosLimitDuration ?? 24);
     } catch (err: any) {
       console.error(err);
     } finally {
@@ -131,6 +140,10 @@ export default function SettingsPage() {
           sourceUrl,
           apiToken,
           sourceKey: sourceKey || undefined,
+          ddosEnabled,
+          ddosThreshold: Number(ddosThreshold),
+          ddosLimitRpm: Number(ddosLimitRpm),
+          ddosLimitDuration: Number(ddosLimitDuration),
         }),
       });
 
@@ -188,6 +201,9 @@ export default function SettingsPage() {
               </a>
               <a className="text-on-surface-variant/70 transition-colors hover:bg-surface-container-high/40 hover:text-on-surface" href="/incidents">
                 {t("navbar.incidents")}
+              </a>
+              <a className="text-on-surface-variant/70 transition-colors hover:bg-surface-container-high/40 hover:text-on-surface" href="/firewall">
+                {t("navbar.firewall")}
               </a>
               <a className="border-b-2 border-primary pb-1 text-primary transition-colors hover:bg-surface-container-high/40" href="/settings">
                 {t("navbar.settings")}
@@ -256,6 +272,16 @@ export default function SettingsPage() {
                 }`}
               >
                 <SyncOutlined /> {t("settings.tabs.sync")}
+              </button>
+              <button
+                onClick={() => setActiveTab("ddos")}
+                className={`pb-3 text-sm font-bold tracking-wide uppercase transition-all flex items-center gap-2 cursor-pointer ${
+                  activeTab === "ddos"
+                    ? "border-b-2 border-primary text-primary"
+                    : "text-on-surface-variant/60 hover:text-on-surface"
+                }`}
+              >
+                <WarningOutlined /> {t("settings.ddos.title")}
               </button>
             </div>
 
@@ -335,6 +361,120 @@ export default function SettingsPage() {
                         <div className="rounded-xl border border-green-500/20 bg-green-500/10 p-4 text-xs text-green-400 flex items-start gap-2">
                           <CheckCircleOutlined className="mt-0.5" />
                           <span>{t("settings.streamForm.success")}</span>
+                        </div>
+                      )}
+
+                      <div className="flex justify-end pt-2">
+                        <button
+                          type="submit"
+                          disabled={savingConfig || configSuccess}
+                          className="rounded-xl bg-primary py-2.5 px-6 text-sm font-bold text-on-primary-container hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer flex items-center gap-2"
+                        >
+                          {savingConfig ? (
+                            <>
+                              <SyncOutlined className="animate-spin" /> {t("settings.streamForm.submitActive")}
+                            </>
+                          ) : (
+                            t("settings.streamForm.submit")
+                          )}
+                        </button>
+                      </div>
+                    </form>
+                  )}
+                </div>
+              )}
+
+              {/* Tab 4: DDoS Config */}
+              {activeTab === "ddos" && (
+                <div className="rounded-2xl border border-outline-variant/15 bg-surface-container-low p-6 md:p-8 space-y-6">
+                  <div className="flex items-center gap-3 border-b border-outline-variant/10 pb-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                      <WarningOutlined className="text-lg" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-on-surface">{t("settings.ddos.title")}</h3>
+                      <p className="text-xs text-on-surface-variant">{t("settings.ddos.desc")}</p>
+                    </div>
+                  </div>
+
+                  {loadingStream ? (
+                    <div className="py-12 text-center text-on-surface-variant flex flex-col items-center gap-3">
+                      <SyncOutlined className="animate-spin text-2xl text-primary" />
+                      <span className="text-sm font-mono uppercase tracking-widest">{t("settings.streamForm.loading")}</span>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleConfigSubmit} className="space-y-5">
+                      <div className="flex items-center gap-3 bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/20">
+                        <input
+                          type="checkbox"
+                          id="ddosEnabled"
+                          checked={ddosEnabled}
+                          onChange={(e) => setDdosEnabled(e.target.checked)}
+                          className="h-5 w-5 rounded border-outline/30 bg-surface text-primary focus:ring-primary cursor-pointer animate-fade-in"
+                        />
+                        <label htmlFor="ddosEnabled" className="text-sm font-bold text-on-surface cursor-pointer select-none">
+                          {t("settings.ddos.enabled")}
+                        </label>
+                      </div>
+
+                      {ddosEnabled && (
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <label className="block text-xs uppercase tracking-wider text-outline mb-2 font-bold">
+                              {t("settings.ddos.threshold")}
+                            </label>
+                            <input
+                              type="number"
+                              min="1"
+                              required
+                              value={ddosThreshold}
+                              onChange={(e) => setDdosThreshold(Number(e.target.value))}
+                              className="w-full rounded-xl border border-outline/30 bg-surface-container-lowest px-4 py-2.5 text-sm font-bold font-mono text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-xs uppercase tracking-wider text-outline mb-2 font-bold">
+                              {t("settings.ddos.limitRpm")}
+                            </label>
+                            <input
+                              type="number"
+                              min="1"
+                              required
+                              value={ddosLimitRpm}
+                              onChange={(e) => setDdosLimitRpm(Number(e.target.value))}
+                              className="w-full rounded-xl border border-outline/30 bg-surface-container-lowest px-4 py-2.5 text-sm font-bold font-mono text-on-surface focus:outline-none"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-xs uppercase tracking-wider text-outline mb-2 font-bold">
+                              {t("settings.ddos.duration")}
+                            </label>
+                            <select
+                              value={ddosLimitDuration}
+                              onChange={(e) => setDdosLimitDuration(Number(e.target.value))}
+                              className="w-full rounded-xl border border-outline/30 bg-surface-container-lowest px-4 py-2.5 text-sm font-semibold text-on-surface focus:outline-none"
+                            >
+                              <option value="1">1 {language === "vi" ? "giờ" : "hour"}</option>
+                              <option value="24">24 {language === "vi" ? "giờ (1 ngày)" : "hours (1 day)"}</option>
+                              <option value="168">168 {language === "vi" ? "giờ (1 tuần)" : "hours (1 week)"}</option>
+                            </select>
+                          </div>
+                        </div>
+                      )}
+
+                      {configError && (
+                        <div className="rounded-xl border border-error/20 bg-error/10 p-4 text-xs text-error flex items-start gap-2">
+                          <WarningOutlined className="mt-0.5" />
+                          <span>{configError}</span>
+                        </div>
+                      )}
+
+                      {configSuccess && (
+                        <div className="rounded-xl border border-green-500/20 bg-green-500/10 p-4 text-xs text-green-400 flex items-start gap-2">
+                          <CheckCircleOutlined className="mt-0.5" />
+                          <span>{t("settings.ddos.success")}</span>
                         </div>
                       )}
 

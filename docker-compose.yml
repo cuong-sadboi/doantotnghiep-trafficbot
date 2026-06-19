@@ -56,7 +56,7 @@ services:
       - AI_SERVICE_URL=http://ai-service:5000
       - JWT_SECRET=replace_with_a_long_random_secret
       - JWT_EXPIRES_IN=7d
-      - CORS_ORIGIN=http://localhost:3000
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:3000}
       - STREAM_SOURCE_URL=https://www.pythonanywhere.com/user/cuong1512/files/var/log/cuong1512.pythonanywhere.com.access.log
       - STREAM_API_TOKEN=24247a90fa06e45e19ea19979553baee5f86724d
       - STREAM_SOURCE_KEY=pythonanywhere
@@ -67,12 +67,12 @@ services:
     build:
       context: ./admin-web/traffic-bot-system
       dockerfile: Dockerfile
-      args:
-        - NEXT_PUBLIC_API_BASE_URL=http://localhost:3001
     container_name: traffic-bot-frontend
     restart: always
     ports:
       - "3000:3000"
+    env_file:
+      - ./admin-web/traffic-bot-system/.env
     depends_on:
       - backend
 

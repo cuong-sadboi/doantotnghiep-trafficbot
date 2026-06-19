@@ -7,6 +7,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
 import { AiModule } from './ai-service/ai.module';
 import { StreamsModule } from './streams/streams.module';
+import { FirewallModule } from './firewall/firewall.module';
 
 
 @Module({
@@ -15,6 +16,7 @@ import { StreamsModule } from './streams/streams.module';
     AuthModule,
     AiModule,
     StreamsModule,
+    FirewallModule,
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],

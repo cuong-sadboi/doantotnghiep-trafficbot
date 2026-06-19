@@ -3,9 +3,7 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Khai báo argument để Next.js nhúng vào bundle khi build
-ARG NEXT_PUBLIC_API_BASE_URL=http://localhost:3001
-ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
+# Next.js sẽ tự động đọc file .env được sao chép vào qua lệnh COPY . . để nhúng vào bundle khi build
 
 # Sao chép package.json và cài đặt dependencies
 COPY package*.json ./

@@ -141,6 +141,9 @@ export default function AnalysisResultPage() {
               <a className="text-on-surface-variant/70 transition-colors hover:bg-surface-container-high/40 hover:text-on-surface" href="/incidents">
                 {t("navbar.incidents")}
               </a>
+              <a className="text-on-surface-variant/70 transition-colors hover:bg-surface-container-high/40 hover:text-on-surface" href="/firewall">
+                {t("navbar.firewall")}
+              </a>
               <a className="text-on-surface-variant/70 transition-colors hover:bg-surface-container-high/40 hover:text-on-surface" href="/settings">
                 {t("navbar.settings")}
               </a>

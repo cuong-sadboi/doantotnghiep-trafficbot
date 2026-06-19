@@ -6,6 +6,8 @@ import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
 import { StreamLogEntry } from './entities/stream-log-entry.entity';
 import { StreamIngestState } from './entities/stream-ingest-state.entity';
+import { FirewallService } from '../firewall/firewall.service';
+import { FirewallAction } from '../firewall/entities/blocked-ip.entity';
 
 const LOG_REGEX = /^(\S+) - - \[(.+?)\] "(\S+) (\S+) \S+" (\d+) (\d+) ".*?" "(.*?)"/;
 
@@ -26,6 +28,7 @@ export class StreamsService implements OnModuleInit, OnModuleDestroy {
     private readonly stateRepository: Repository<StreamIngestState>,
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
+    private readonly firewallService: FirewallService,
   ) {
     this.sourceKey = this.configService.get<string>('STREAM_SOURCE_KEY') ?? 'pythonanywhere';
     this.sourceUrl = this.configService.get<string>('STREAM_SOURCE_URL') ?? '';
@@ -33,25 +36,43 @@ export class StreamsService implements OnModuleInit, OnModuleDestroy {
     this.pollIntervalMs = Number(this.configService.get<string>('STREAM_POLL_INTERVAL_MS') ?? 60000);
   }
 
-  async updateConfig(sourceUrl: string, apiToken: string, sourceKey = 'custom_site') {
+  async updateConfig(
+    sourceUrl: string,
+    apiToken: string,
+    sourceKey = 'custom_site',
+    ddosEnabled?: boolean,
+    ddosThreshold?: number,
+    ddosLimitRpm?: number,
+    ddosLimitDuration?: number,
+  ) {
     if (this.intervalId) {
       clearInterval(this.intervalId);
       this.intervalId = null;
     }
 
+    const urlChanged = this.sourceUrl !== sourceUrl || this.sourceKey !== sourceKey;
     this.sourceUrl = sourceUrl;
     this.apiToken = apiToken;
     this.sourceKey = sourceKey;
 
     try {
-      // Clear all log entries in DB so we don't mix logs
-      await this.entryRepository.clear();
+      if (urlChanged) {
+        // Clear all log entries in DB so we don't mix logs
+        await this.entryRepository.clear();
+      }
 
       // Update/Create state in DB
       const state = await this.getOrCreateState();
       state.sourceUrl = sourceUrl;
-      state.lastByteOffset = 0;
-      state.lastPartialLine = null;
+      state.apiToken = apiToken;
+      if (urlChanged) {
+        state.lastByteOffset = 0;
+        state.lastPartialLine = null;
+      }
+      if (ddosEnabled !== undefined) state.ddosEnabled = ddosEnabled;
+      if (ddosThreshold !== undefined) state.ddosThreshold = ddosThreshold;
+      if (ddosLimitRpm !== undefined) state.ddosLimitRpm = ddosLimitRpm;
+      if (ddosLimitDuration !== undefined) state.ddosLimitDuration = ddosLimitDuration;
       await this.stateRepository.save(state);
 
       this.logger.log(`Stream configuration updated. Source: ${sourceUrl}, Key: ${sourceKey}`);
@@ -137,8 +158,13 @@ export class StreamsService implements OnModuleInit, OnModuleDestroy {
     return {
       sourceKey: this.sourceKey,
       sourceUrl: state?.sourceUrl ?? this.sourceUrl,
+      apiToken: state?.apiToken ?? this.apiToken,
       lastByteOffset: state?.lastByteOffset ?? 0,
       updatedAt: state?.updatedAt ?? null,
+      ddosEnabled: state?.ddosEnabled ?? false,
+      ddosThreshold: state?.ddosThreshold ?? 100,
+      ddosLimitRpm: state?.ddosLimitRpm ?? 60,
+      ddosLimitDuration: state?.ddosLimitDuration ?? 24,
     };
   }
 
@@ -194,6 +220,7 @@ export class StreamsService implements OnModuleInit, OnModuleDestroy {
 
       if (entries.length > 0) {
         await this.entryRepository.save(entries);
+        await this.detectDdosAndAutoLimit(entries);
       }
 
       await this.stateRepository.save({
@@ -304,5 +331,62 @@ export class StreamsService implements OnModuleInit, OnModuleDestroy {
     });
 
     return this.stateRepository.save(created);
+  }
+
+  private async detectDdosAndAutoLimit(newEntries: StreamLogEntry[]) {
+    try {
+      const state = await this.getOrCreateState();
+      if (!state.ddosEnabled) {
+        return;
+      }
+
+      const uniqueIps = Array.from(new Set(newEntries.map((e) => e.ip)));
+      const ddosThreshold = state.ddosThreshold ?? 100;
+      const autoLimitRpm = state.ddosLimitRpm ?? 60;
+      const autoLimitDuration = state.ddosLimitDuration ?? 24;
+
+      // Find the latest timestamp in the new batch as reference time
+      const referenceTime = newEntries.reduce((max, entry) => 
+        entry.loggedAt.getTime() > max.getTime() ? entry.loggedAt : max, 
+        newEntries[0].loggedAt
+      );
+      const oneMinuteAgo = new Date(referenceTime.getTime() - 60 * 1000);
+
+      for (const ip of uniqueIps) {
+        // Count requests from this IP in the last minute relative to referenceTime
+        const count = await this.entryRepository.count({
+          where: {
+            ip,
+            loggedAt: Between(oneMinuteAgo, referenceTime),
+          },
+        });
+
+        if (count > ddosThreshold) {
+          this.logger.warn(
+            `DDoS signature detected for IP ${ip}: ${count} requests in the last minute (Threshold: ${ddosThreshold}). Automatically applying Rate Limit.`,
+          );
+
+          try {
+            const isBlocked = await this.firewallService.checkIp(ip);
+            if (!isBlocked.blocked) {
+              await this.firewallService.createRule(
+                ip,
+                FirewallAction.RATE_LIMIT,
+                `Auto DDoS protection: ${count} req/min (Threshold: ${ddosThreshold})`,
+                autoLimitDuration,
+                autoLimitRpm,
+              );
+              this.logger.log(
+                `Successfully applied auto rate-limit rule for IP ${ip} (${autoLimitRpm} RPM, ${autoLimitDuration}h)`,
+              );
+            }
+          } catch (err: any) {
+            this.logger.error(`Failed to apply auto rate-limit rule for IP ${ip}: ${err?.message}`);
+          }
+        }
+      }
+    } catch (err: any) {
+      this.logger.error(`Error in DDoS auto rate-limit detection: ${err?.message}`);
+    }
   }
 }

@@ -9,6 +9,7 @@ import {
   DatabaseOutlined,
   GlobalOutlined,
   LineChartOutlined,
+  SafetyCertificateOutlined,
   SearchOutlined,
   UserOutlined,
   WarningOutlined,
@@ -105,6 +106,55 @@ export default function StreamsPage() {
   const [filter, setFilter] = useState("");
   const [showAll, setShowAll] = useState(false);
   const [selectedIp, setSelectedIp] = useState<string | null>(null);
+
+  // Quick block modal states
+  const [quickBlockIp, setQuickBlockIp] = useState<string | null>(null);
+  const [actionInput, setActionInput] = useState<"BLOCK" | "RATE_LIMIT">("BLOCK");
+  const [reasonInput, setReasonInput] = useState("");
+  const [durationInput, setDurationInput] = useState<string>("24");
+  const [rpmInput, setRpmInput] = useState<number>(60);
+  const [blockingSubmit, setBlockingSubmit] = useState(false);
+  const [blockSuccess, setBlockSuccess] = useState<string | null>(null);
+  const [blockError, setBlockError] = useState<string | null>(null);
+
+  const handleApplyBlock = async () => {
+    if (!quickBlockIp) return;
+    setBlockingSubmit(true);
+    setBlockError(null);
+    setBlockSuccess(null);
+
+    const durationHours = durationInput === "forever" ? 0 : Number(durationInput);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/firewall/rules`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ip: quickBlockIp,
+          action: actionInput,
+          reason: reasonInput,
+          durationHours: durationHours > 0 ? durationHours : undefined,
+          requestsPerMinute: actionInput === "RATE_LIMIT" ? rpmInput : undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body?.message || "Failed to block IP.");
+      }
+
+      setBlockSuccess(language === "vi" ? "Đã áp dụng chặn IP thành công!" : "IP blocked successfully!");
+      setTimeout(() => {
+        setQuickBlockIp(null);
+        setBlockSuccess(null);
+      }, 1500);
+    } catch (err: any) {
+      setBlockError(err.message || "Failed to apply block.");
+    } finally {
+      setBlockingSubmit(false);
+    }
+  };
+
   const [watchlistPage, setWatchlistPage] = useState(1);
   const [caseType, setCaseType] = useState<"current" | "relative" | "custom">("current");
   const [timeType, setTimeType] = useState<"day" | "week" | "month">("day");
@@ -720,6 +770,9 @@ export default function StreamsPage() {
               <a className="text-on-surface-variant/70 transition-colors hover:bg-surface-container-high/40 hover:text-on-surface" href="/incidents">
                 {t("navbar.incidents")}
               </a>
+              <a className="text-on-surface-variant/70 transition-colors hover:bg-surface-container-high/40 hover:text-on-surface" href="/firewall">
+                {t("navbar.firewall")}
+              </a>
               <a className="text-on-surface-variant/70 transition-colors hover:bg-surface-container-high/40 hover:text-on-surface" href="/settings">
                 {t("navbar.settings")}
               </a>
@@ -1077,10 +1130,8 @@ export default function StreamsPage() {
                           <th className="pb-3">{t("streams.behavior.tableIp")}</th>
                           <th className="pb-3 text-center">{t("streams.behavior.tableRisk")}</th>
                           <th className="pb-3 text-right">{t("streams.behavior.tableHits")}</th>
-                          <th className="pb-3 text-right">{t("streams.behavior.tablePaths")}</th>
-                          <th className="pb-3">{t("streams.behavior.tableTopPath")}</th>
-                          <th className="pb-3">{t("streams.behavior.tableReasons")}</th>
-                          <th className="pb-3 text-right">{t("streams.behavior.tableTime")}</th>
+                          <th className="pb-3 text-right">{t("streams.behavior.tablePaths")}</th>                           <th className="pb-3 text-right">{t("streams.behavior.tableTime")}</th>
+                          <th className="pb-3 text-right">{language === "vi" ? "Thao tác" : "Action"}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-outline-variant/10">
@@ -1126,6 +1177,17 @@ export default function StreamsPage() {
                               </td>
                               <td className="py-4 text-right text-xs font-mono text-on-surface-variant">
                                 {formatTimestamp(item.latestAccess)}
+                              </td>
+                              <td className="py-4 text-right">
+                                <button
+                                  onClick={() => {
+                                    setQuickBlockIp(item.ip);
+                                    setReasonInput(item.reasons.join(", "));
+                                  }}
+                                  className="rounded-lg border border-red-500/30 bg-red-500/10 py-1 px-3 text-xs font-semibold hover:bg-red-500/20 transition cursor-pointer text-red-400"
+                                >
+                                  {language === "vi" ? "Chặn IP" : "Block IP"}
+                                </button>
                               </td>
                             </tr>
                           );
@@ -1447,6 +1509,123 @@ export default function StreamsPage() {
           </div>
         );
       })()}
+      {/* Quick Block Modal */}
+      {quickBlockIp && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/80 backdrop-blur-xs cursor-pointer"
+            onClick={() => setQuickBlockIp(null)}
+          />
+
+          {/* Modal Box */}
+          <div className="relative w-full max-w-xl overflow-hidden rounded-2xl border border-outline-variant/20 bg-surface p-8 shadow-2xl animate-fade-in text-on-surface">
+            <div className="flex items-center justify-between mb-8">
+              <h3 className="text-xl font-bold flex items-center gap-2 text-primary">
+                <SafetyCertificateOutlined className="text-xl" /> {language === "vi" ? `Cấu hình chặn IP: ${quickBlockIp}` : `Block IP: ${quickBlockIp}`}
+              </h3>
+              <button
+                onClick={() => setQuickBlockIp(null)}
+                className="rounded-lg p-1.5 text-on-surface-variant hover:bg-surface-container-high transition cursor-pointer"
+                type="button"
+              >
+                <CloseOutlined className="text-base" />
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              <div>
+                <label className="block text-xs uppercase tracking-wider text-on-surface-variant mb-2 font-bold">
+                  {language === "vi" ? "Kiểu tác động" : "Action Type"}
+                </label>
+                <select
+                  value={actionInput}
+                  onChange={(e) => setActionInput(e.target.value as any)}
+                  className="w-full rounded-xl border border-outline/30 bg-surface-container-low px-4 py-2.5 text-sm font-semibold text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
+                >
+                  <option value="BLOCK" className="font-semibold">{language === "vi" ? "Chặn hoàn toàn" : "Block Completely"}</option>
+                  <option value="RATE_LIMIT" className="font-semibold">{language === "vi" ? "Giới hạn tần suất" : "Rate Limit"}</option>
+                </select>
+              </div>
+
+              {actionInput === "RATE_LIMIT" && (
+                <div>
+                  <label className="block text-xs uppercase tracking-wider text-on-surface-variant mb-2 font-bold">
+                    {language === "vi" ? "Yêu cầu tối đa / phút (RPM)" : "Max Requests Per Minute (RPM)"}
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={rpmInput}
+                    onChange={(e) => setRpmInput(Number(e.target.value))}
+                    className="w-full rounded-xl border border-outline/30 bg-surface-container-low px-4 py-2.5 text-sm font-bold font-mono text-on-surface focus:outline-none"
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs uppercase tracking-wider text-on-surface-variant mb-2 font-bold">
+                  {language === "vi" ? "Lý do chặn" : "Blocking Reason"}
+                </label>
+                <input
+                  type="text"
+                  placeholder={language === "vi" ? "Ví dụ: AI phát hiện hành vi bot" : "e.g. AI detected bot behavior"}
+                  value={reasonInput}
+                  onChange={(e) => setReasonInput(e.target.value)}
+                  className="w-full rounded-xl border border-outline/30 bg-surface-container-low px-4 py-2.5 text-sm font-semibold text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs uppercase tracking-wider text-on-surface-variant mb-2 font-bold">
+                  {language === "vi" ? "Thời hạn chặn" : "Blocking Duration"}
+                </label>
+                <select
+                  value={durationInput}
+                  onChange={(e) => setDurationInput(e.target.value)}
+                  className="w-full rounded-xl border border-outline/30 bg-surface-container-low px-4 py-2.5 text-sm font-semibold text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
+                >
+                  <option value="1" className="font-semibold">{language === "vi" ? "1 giờ" : "1 hour"}</option>
+                  <option value="24" className="font-semibold">{language === "vi" ? "24 giờ (1 ngày)" : "24 hours (1 day)"}</option>
+                  <option value="168" className="font-semibold">{language === "vi" ? "7 ngày (1 tuần)" : "7 days (1 week)"}</option>
+                  <option value="forever" className="font-semibold">{language === "vi" ? "Vĩnh viễn" : "Forever"}</option>
+                </select>
+              </div>
+
+              {blockError && (
+                <div className="rounded-xl border border-error/20 bg-error/10 p-3 text-xs text-error font-bold">
+                  {blockError}
+                </div>
+              )}
+
+              {blockSuccess && (
+                <div className="rounded-xl border border-green-500/20 bg-green-500/10 p-3 text-xs text-green-400 font-bold">
+                  {blockSuccess}
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setQuickBlockIp(null)}
+                  className="flex-1 rounded-xl border border-outline/30 py-2.5 text-sm font-bold hover:bg-surface-container-high transition cursor-pointer text-center text-on-surface"
+                >
+                  {language === "vi" ? "Hủy" : "Cancel"}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleApplyBlock}
+                  disabled={blockingSubmit || !!blockSuccess}
+                  className="flex-1 rounded-xl bg-primary py-2.5 text-sm font-bold text-on-primary-container hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer text-center"
+                >
+                  {blockingSubmit ? (language === "vi" ? "Đang xử lý..." : "Processing...") : (language === "vi" ? "Xác nhận" : "Confirm")}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
