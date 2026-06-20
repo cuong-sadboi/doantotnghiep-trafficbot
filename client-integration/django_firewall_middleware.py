@@ -1,5 +1,6 @@
 import time
-import requests
+import os
+import json
 from django.http import HttpResponse
 from django.conf import settings
 
@@ -10,12 +11,12 @@ class DjangoFirewallMiddleware:
         """
         self.get_response = get_response
         
-        # Lấy cấu hình từ Django settings, sử dụng giá trị mặc định nếu không khai báo
-        self.backend_url = getattr(settings, 'FIREWALL_BACKEND_URL', 'http://localhost:3001').rstrip('/')
-        self.cache_ttl = getattr(settings, 'FIREWALL_CACHE_TTL', 60)
-        
-        # Cache trạng thái IP cục bộ: { ip: { "rule": dict, "cached_at": float } }
-        self.ip_status_cache = {}
+        # Đường dẫn tới file JSON chứa danh sách IP bị chặn (mặc định ở thư mục gốc dự án)
+        self.blocked_ips_file = getattr(
+            settings, 
+            'FIREWALL_BLOCKED_IPS_FILE', 
+            os.path.join(settings.BASE_DIR, 'blocked_ips.json')
+        )
         
         # Đếm request phục vụ Rate Limiter cục bộ: { ip: { "minute_bucket": int, "count": int } }
         self.rate_limit_counter = {}
@@ -30,50 +31,32 @@ class DjangoFirewallMiddleware:
             return x_forwarded_for.split(',')[0].strip()
         return request.META.get('REMOTE_ADDR')
 
-    def query_backend_status(self, ip):
-        """
-        Gọi API NestJS Backend để kiểm tra trạng thái IP
-        """
-        try:
-            # Thiết lập timeout ngắn (2 giây) để tránh làm treo ứng dụng con nếu Backend gặp sự cố
-            response = requests.get(
-                f"{self.backend_url}/firewall/check",
-                params={"ip": ip},
-                timeout=2.0
-            )
-            if response.status_code == 200:
-                data = response.json()
-                return {
-                    "blocked": data.get("blocked", False),
-                    "action": data.get("action"),
-                    "reason": data.get("reason"),
-                    "requestsPerMinute": data.get("requestsPerMinute"),
-                    "expiresAt": data.get("expiresAt")
-                }
-        except Exception as e:
-            # Ghi log cảnh báo kết nối nhưng cho phép request tiếp tục đi qua
-            print(f"[DjangoFirewallMiddleware] Warning: Could not connect to firewall backend: {e}")
-        
-        return {"blocked": False, "action": None, "reason": None, "requestsPerMinute": None, "expiresAt": None}
-
     def get_ip_rule(self, ip):
         """
-        Lấy quy tắc Firewall áp dụng cho IP (sử dụng cache cục bộ trước)
+        Đọc danh sách IP bị chặn từ file JSON cục bộ
         """
-        now = time.time()
-        cached = self.ip_status_cache.get(ip)
-        
-        # Nếu cache còn hiệu lực, trả về luôn
-        if cached and (now - cached["cached_at"] < self.cache_ttl):
-            return cached["rule"]
-        
-        # Cache hết hạn hoặc chưa có, gọi backend
-        rule = self.query_backend_status(ip)
-        self.ip_status_cache[ip] = {
-            "rule": rule,
-            "cached_at": now
-        }
-        return rule
+        if not os.path.exists(self.blocked_ips_file):
+            # Nếu file chưa tồn tại (chưa sync lần nào), mặc định cho qua
+            return {"blocked": False, "action": None, "reason": None, "requestsPerMinute": None}
+
+        try:
+            with open(self.blocked_ips_file, 'r', encoding='utf-8') as f:
+                rules = json.load(f)
+        except Exception as e:
+            print(f"[DjangoFirewallMiddleware] Lỗi đọc file JSON: {e}")
+            return {"blocked": False, "action": None, "reason": None, "requestsPerMinute": None}
+
+        # Tìm kiếm rule tương ứng với IP của client
+        for rule in rules:
+            if rule.get("ip") == ip:
+                return {
+                    "blocked": True,
+                    "action": rule.get("action"),
+                    "reason": rule.get("reason"),
+                    "requestsPerMinute": rule.get("requestsPerMinute")
+                }
+
+        return {"blocked": False, "action": None, "reason": None, "requestsPerMinute": None}
 
     def check_rate_limit(self, ip, max_rpm):
         """
@@ -94,13 +77,22 @@ class DjangoFirewallMiddleware:
             return True
         
         counter["count"] += 1
+        print(f"[DjangoFirewallMiddleware] Rate Limit check cho IP {ip}: {counter['count']}/{max_rpm} request trong phút này.")
         return counter["count"] <= max_rpm
 
     def __call__(self, request):
+        # Tránh chặn request gọi vào chính endpoint webhook đồng bộ
+        if request.path.rstrip('/') == '/firewall/webhook':
+            return self.get_response(request)
+
         ip = self.get_client_ip(request)
+        print(f"\n[DjangoFirewallMiddleware] --- Kiểm tra request từ IP: {ip} | Path: {request.path} ---")
+        
         rule = self.get_ip_rule(ip)
 
         if rule["blocked"]:
+            print(f"[DjangoFirewallMiddleware] ALERT: IP {ip} đang bị chặn! Hành động: {rule['action']}")
+            
             # 1. Trường hợp chặn truy cập hoàn toàn (BLOCK)
             if rule["action"] == "BLOCK":
                 reason = rule.get("reason") or "Không có lý do cụ thể"
@@ -137,6 +129,7 @@ class DjangoFirewallMiddleware:
             if rule["action"] == "RATE_LIMIT":
                 max_rpm = rule.get("requestsPerMinute")
                 if not self.check_rate_limit(ip, max_rpm):
+                    print(f"[DjangoFirewallMiddleware] LIMIT: IP {ip} đã vượt ngưỡng giới hạn {max_rpm} RPM!")
                     html_content = f"""
                     <!DOCTYPE html>
                     <html>
@@ -161,6 +154,6 @@ class DjangoFirewallMiddleware:
                     """
                     return HttpResponse(html_content, status=429)
 
-        # Nếu IP an toàn, tiếp tục chuyển request cho các middleware tiếp theo/views xử lý
+        # Nếu IP an toàn, tiếp tục chuyển request cho các views xử lý
         response = self.get_response(request)
         return response

@@ -59,39 +59,59 @@ if __name__ == "__main__":
     app.run(port=8000)
 ```
 
-### Bước 3.2: Tích hợp vào ứng dụng Django
+### Bước 3.2: Tích hợp vào ứng dụng Django (Cơ chế Webhook đẩy ngược)
 
-Nếu web con của bạn viết bằng **Django**, hãy thực hiện như sau:
+Nếu web con của bạn viết bằng **Django** và chạy trên PythonAnywhere (bị giới hạn Outbound Proxy), hãy sử dụng cơ chế đồng bộ Webhook (Backend chủ động đẩy danh sách IP bị chặn về Django lưu trữ cục bộ):
 
-1. Sao chép file [django_firewall_middleware.py](file:///c:/Users/Admin/Desktop/doantotnghiep/client-integration/django_firewall_middleware.py) vào thư mục dự án của bạn (ví dụ: cùng cấp với `settings.py`).
-2. Đăng ký Middleware trong file `settings.py` bằng cách thêm đường dẫn import của `DjangoFirewallMiddleware` vào danh sách `MIDDLEWARE` (khuyên dùng đặt ở dòng đầu tiên để chặn request sớm nhất):
+1. **Thêm mã nguồn Middleware và Webhook view**:
+   - Sao chép file [django_firewall_middleware.py](file:///c:/Users/Admin/Desktop/doantotnghiep/client-integration/django_firewall_middleware.py) vào thư mục dự án Django của bạn (ví dụ: cùng cấp với `settings.py`).
+   - Sao chép file [django_webhook_view.py](file:///c:/Users/Admin/Desktop/doantotnghiep/client-integration/django_webhook_view.py) vào cùng thư mục đó.
 
-```python
-MIDDLEWARE = [
-    # Thay 'myapp' bằng tên thư mục chứa file middleware của bạn
-    'myapp.django_firewall_middleware.DjangoFirewallMiddleware',
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    # ... các middleware khác ...
-]
-```
+2. **Đăng ký Middleware** trong file `settings.py` của Django:
+   ```python
+   MIDDLEWARE = [
+       # Khuyên dùng đặt ở dòng đầu tiên để chặn request sớm nhất
+       'myapp.django_firewall_middleware.DjangoFirewallMiddleware',
+       'django.middleware.security.SecurityMiddleware',
+       'django.contrib.sessions.middleware.SessionMiddleware',
+       'django.middleware.common.CommonMiddleware',
+       # ... các middleware khác ...
+   ]
+   ```
 
-3. Thêm cấu hình xuống cuối file `settings.py` (tùy chọn):
+3. **Cấu hình Token Bảo Mật** ở cuối file `settings.py`:
+   ```python
+   # Token bảo mật dùng để xác thực request đẩy về từ Backend NestJS
+   # Hãy chọn một chuỗi bảo mật ngẫu nhiên và cấu hình khớp với NestJS Backend
+   FIREWALL_WEBHOOK_TOKEN = "your_secure_secret_token"
+   ```
 
-```python
-# Địa chỉ gốc của NestJS Backend
-FIREWALL_BACKEND_URL = "http://localhost:3001"
+4. **Đăng ký Webhook Router** trong file `urls.py` của Django:
+   ```python
+   from django.urls import path
+   # Thay 'myapp' bằng tên thư mục chứa file view của bạn
+   from myapp.django_webhook_view import firewall_webhook
 
-# Thời gian sống (giây) của bộ đệm cache trạng thái IP (mặc định: 60)
-FIREWALL_CACHE_TTL = 60
-```
+   urlpatterns = [
+       path('firewall/webhook/', firewall_webhook, name='firewall_webhook'),
+       # ... các path khác ...
+   ]
+   ```
 
 ---
 
-## Các cấu hình nâng cao trong Middleware
+## Cấu hình ở Backend NestJS để đẩy Webhook
 
-Bạn có thể chỉnh sửa các tham số trong Middleware để tối ưu hóa hiệu năng:
-- **`cache_ttl`**: Thời gian cache trạng thái IP từ backend (mặc định là `60` giây). Giúp giảm tải tối đa cho NestJS Backend.
-- **`timeout`**: Thư viện HTTP Request được cấu hình timeout ngắn (`timeout=2.0` giây) để đảm bảo nếu Backend NestJS gặp sự cố hoặc offline, Web con vẫn tiếp tục hoạt động bình thường mà không bị treo request của người dùng.
+Để Backend NestJS tự động gọi Webhook đồng bộ sang Django, hãy khai báo các biến môi trường sau trong file `.env` của NestJS Backend:
+
+```env
+# Đường dẫn Webhook của trang Django (chạy online hoặc local)
+FIREWALL_WEBHOOK_URL=https://cuong1512.pythonanywhere.com/firewall/webhook/
+
+# Token bảo mật (khớp với FIREWALL_WEBHOOK_TOKEN bên Django)
+FIREWALL_WEBHOOK_TOKEN=your_secure_secret_token
+```
+
+Khi bất kỳ quy tắc chặn IP nào được thiết lập (hoặc gỡ bỏ), Backend sẽ tự động gọi HTTP POST đồng bộ sang Django để cập nhật file `blocked_ips.json` cục bộ, giúp việc chặn IP trên Web con hoạt động trơn tru với độ trễ ~0ms.
+
 

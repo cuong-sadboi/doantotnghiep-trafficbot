@@ -1,6 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { LessThan, Repository } from 'typeorm';
+import { HttpService } from '@nestjs/axios';
+import { ConfigService } from '@nestjs/config';
+import { firstValueFrom } from 'rxjs';
 import { BlockedIp, FirewallAction } from './entities/blocked-ip.entity';
 
 @Injectable()
@@ -10,7 +13,53 @@ export class FirewallService {
   constructor(
     @InjectRepository(BlockedIp)
     private readonly blockedIpRepository: Repository<BlockedIp>,
+    private readonly httpService: HttpService,
+    private readonly configService: ConfigService,
   ) {}
+
+  private async syncRulesToWebhook(): Promise<void> {
+    const webhookUrl = this.configService.get<string>('FIREWALL_WEBHOOK_URL');
+    const webhookToken = this.configService.get<string>('FIREWALL_WEBHOOK_TOKEN');
+
+    if (!webhookUrl) {
+      this.logger.warn('FIREWALL_WEBHOOK_URL is not configured. Webhook sync skipped.');
+      return;
+    }
+
+    try {
+      this.logger.log(`Syncing firewall rules to webhook: ${webhookUrl}`);
+      const rules = await this.blockedIpRepository.find({
+        order: { createdAt: 'DESC' },
+      });
+
+      const now = new Date();
+      const activeRules = rules.filter(r => !r.expiresAt || r.expiresAt > now);
+
+      const payload = {
+        rules: activeRules.map(r => ({
+          ip: r.ip,
+          action: r.action,
+          reason: r.reason,
+          requestsPerMinute: r.requestsPerMinute,
+        })),
+      };
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (webhookToken) {
+        headers['X-Firewall-Token'] = webhookToken;
+      }
+
+      await firstValueFrom(
+        this.httpService.post(webhookUrl, payload, { headers, timeout: 5000 })
+      );
+      this.logger.log(`Successfully synced ${activeRules.length} rules to Django client.`);
+    } catch (err: any) {
+      const msg = err?.response?.data?.error ?? err?.response?.data?.message ?? err?.message;
+      this.logger.error(`Failed to sync firewall rules to Django client: ${msg}`);
+    }
+  }
 
   async createRule(
     ip: string,
@@ -46,7 +95,14 @@ export class FirewallService {
       });
     }
 
-    return this.blockedIpRepository.save(rule);
+    const saved = await this.blockedIpRepository.save(rule);
+    
+    // Trigger background webhook sync
+    void this.syncRulesToWebhook().catch((err) => {
+      this.logger.error(`Error in background webhook sync: ${err.message}`);
+    });
+
+    return saved;
   }
 
   async getRules(): Promise<BlockedIp[]> {
@@ -59,7 +115,14 @@ export class FirewallService {
   async deleteRule(ip: string): Promise<boolean> {
     this.logger.log(`Removing firewall rule for IP: ${ip}`);
     const result = await this.blockedIpRepository.delete({ ip });
-    return (result.affected ?? 0) > 0;
+    const affected = (result.affected ?? 0) > 0;
+    if (affected) {
+      // Trigger background webhook sync
+      void this.syncRulesToWebhook().catch((err) => {
+        this.logger.error(`Error in background webhook sync: ${err.message}`);
+      });
+    }
+    return affected;
   }
 
   async checkIp(ip: string): Promise<{
@@ -77,7 +140,12 @@ export class FirewallService {
     const now = new Date();
     if (rule.expiresAt && rule.expiresAt < now) {
       // Rule expired, delete it asynchronously
-      void this.blockedIpRepository.delete({ id: rule.id }).catch((err) => {
+      void this.blockedIpRepository.delete({ id: rule.id }).then(() => {
+        // Trigger sync when a rule is auto-deleted on check
+        void this.syncRulesToWebhook().catch((err) => {
+          this.logger.error(`Error in background webhook sync after auto-delete: ${err.message}`);
+        });
+      }).catch((err) => {
         this.logger.error(`Failed to delete expired rule: ${err.message}`);
       });
       return { blocked: false, action: null, reason: null, requestsPerMinute: null, expiresAt: null };
@@ -100,6 +168,10 @@ export class FirewallService {
       });
       if (result.affected && result.affected > 0) {
         this.logger.log(`Cleaned up ${result.affected} expired firewall rules.`);
+        // Trigger background webhook sync
+        void this.syncRulesToWebhook().catch((err) => {
+          this.logger.error(`Error in background webhook sync after cleanup: ${err.message}`);
+        });
       }
     } catch (err: any) {
       this.logger.error(`Error cleaning up expired rules: ${err?.message}`);
