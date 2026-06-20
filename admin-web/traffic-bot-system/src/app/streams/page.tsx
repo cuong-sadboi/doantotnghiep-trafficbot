@@ -1130,7 +1130,10 @@ export default function StreamsPage() {
                           <th className="pb-3">{t("streams.behavior.tableIp")}</th>
                           <th className="pb-3 text-center">{t("streams.behavior.tableRisk")}</th>
                           <th className="pb-3 text-right">{t("streams.behavior.tableHits")}</th>
-                          <th className="pb-3 text-right">{t("streams.behavior.tablePaths")}</th>                           <th className="pb-3 text-right">{t("streams.behavior.tableTime")}</th>
+                          <th className="pb-3 text-right">{t("streams.behavior.tablePaths")}</th>
+                          <th className="pb-3">{t("streams.behavior.tableTopPath")}</th>
+                          <th className="pb-3">{t("streams.behavior.tableReasons")}</th>
+                          <th className="pb-3 text-right">{t("streams.behavior.tableTime")}</th>
                           <th className="pb-3 text-right">{language === "vi" ? "Thao tác" : "Action"}</th>
                         </tr>
                       </thead>
@@ -1194,7 +1197,7 @@ export default function StreamsPage() {
                         })}
                         {highRiskIps.length === 0 && (
                           <tr>
-                            <td colSpan={7} className="py-12 text-center text-sm text-on-surface-variant">
+                            <td colSpan={8} className="py-12 text-center text-sm text-on-surface-variant">
                               {t("streams.behavior.tableEmpty")}
                             </td>
                           </tr>

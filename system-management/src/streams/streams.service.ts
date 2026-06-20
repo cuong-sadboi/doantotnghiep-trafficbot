@@ -4,6 +4,7 @@ import { Repository, MoreThanOrEqual, Between, LessThanOrEqual } from 'typeorm';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
+import { gunzipSync } from 'zlib';
 import { StreamLogEntry } from './entities/stream-log-entry.entity';
 import { StreamIngestState } from './entities/stream-ingest-state.entity';
 import { FirewallService } from '../firewall/firewall.service';
@@ -239,16 +240,28 @@ export class StreamsService implements OnModuleInit, OnModuleDestroy {
 
   private async fetchLogContent(): Promise<string | null> {
     const apiUrl = this.normalizePythonAnywhereUrl(this.sourceUrl);
+    const isGzip = this.sourceUrl.toLowerCase().endsWith('.gz');
 
     try {
       const response = await firstValueFrom(
         this.httpService.get(apiUrl, {
-          responseType: 'text',
+          responseType: isGzip ? 'arraybuffer' : 'text',
           headers: {
             Authorization: `Token ${this.apiToken}`,
           },
         }),
       );
+
+      if (isGzip) {
+        try {
+          const decompressed = gunzipSync(response.data);
+          return decompressed.toString('utf8');
+        } catch (gzError: any) {
+          this.logger.error(`Failed to decompress gzip file: ${gzError?.message ?? gzError}`);
+          return null;
+        }
+      }
+
       return typeof response.data === 'string' ? response.data : String(response.data ?? '');
     } catch (error: any) {
       const status = error?.response?.status;
