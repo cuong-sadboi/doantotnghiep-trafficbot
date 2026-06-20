@@ -129,6 +129,9 @@ export class StreamsService implements OnModuleInit, OnModuleDestroy {
       } else if (timeframe === 'month') {
         startDate.setDate(1);
         startDate.setHours(0, 0, 0, 0);
+      } else if (timeframe === 'year') {
+        startDate.setMonth(0, 1);
+        startDate.setHours(0, 0, 0, 0);
       }
 
       whereClause = {
@@ -142,7 +145,7 @@ export class StreamsService implements OnModuleInit, OnModuleDestroy {
     };
 
     if (!timeframe && !startDate && !endDate) {
-      findOptions.take = Math.min(Math.max(limit, 1), 500);
+      findOptions.take = Math.min(Math.max(limit, 1), 10000);
       findOptions.skip = Math.max(offset, 0);
     }
 

@@ -156,13 +156,17 @@ export default function StreamsPage() {
   };
 
   const [watchlistPage, setWatchlistPage] = useState(1);
-  const [caseType, setCaseType] = useState<"current" | "relative" | "custom">("current");
-  const [timeType, setTimeType] = useState<"day" | "week" | "month">("day");
+  const [caseType, setCaseType] = useState<"all" | "current" | "relative" | "custom">("current");
+  const [timeType, setTimeType] = useState<"day" | "week" | "month" | "year">("day");
   const [customVal, setCustomVal] = useState<string>("");
   const calculateRange = (cType = caseType, tType = timeType, cVal = customVal) => {
     const now = new Date();
     let start: Date | null = null;
     let end: Date | null = null;
+
+    if (cType === "all") {
+      return { start: null, end: null };
+    }
 
     if (cType === "current") {
       if (tType === "day") {
@@ -187,6 +191,12 @@ export default function StreamsPage() {
         
         end = new Date(start.getFullYear(), start.getMonth() + 1, 0);
         end.setHours(23, 59, 59, 999);
+      } else if (tType === "year") {
+        start = new Date(now.getFullYear(), 0, 1);
+        start.setHours(0, 0, 0, 0);
+        
+        end = new Date(now.getFullYear(), 11, 31);
+        end.setHours(23, 59, 59, 999);
       }
     } else if (cType === "relative") {
       if (tType === "day") {
@@ -197,6 +207,9 @@ export default function StreamsPage() {
         end = now;
       } else if (tType === "month") {
         start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        end = now;
+      } else if (tType === "year") {
+        start = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
         end = now;
       }
     } else if (cType === "custom") {
@@ -230,6 +243,13 @@ export default function StreamsPage() {
         
         end = new Date(year, month, 0);
         end.setHours(23, 59, 59, 999);
+      } else if (tType === "year") {
+        const year = Number(cVal);
+        start = new Date(year, 0, 1);
+        start.setHours(0, 0, 0, 0);
+        
+        end = new Date(year, 11, 31);
+        end.setHours(23, 59, 59, 999);
       }
     }
 
@@ -259,6 +279,8 @@ export default function StreamsPage() {
       let url = `${API_BASE_URL}/streams/entries`;
       if (start && end) {
         url += `?startDate=${start.toISOString()}&endDate=${end.toISOString()}`;
+      } else {
+        url += `?limit=10000`;
       }
 
       const [entriesResponse, statusResponse] = await Promise.all([
@@ -296,6 +318,8 @@ export default function StreamsPage() {
       setCustomVal(`${yyyy}-${mm}-${dd}`);
     } else if (timeType === "month") {
       setCustomVal(`${yyyy}-${mm}`);
+    } else if (timeType === "year") {
+      setCustomVal(`${yyyy}`);
     } else {
       const target = new Date(now.valueOf());
       const dayNr = (now.getDay() + 6) % 7;
@@ -336,7 +360,24 @@ export default function StreamsPage() {
 
     const { start, end } = calculateRange(caseType, timeType, customVal);
 
-    if (timeType === "day") {
+    if (caseType === "all") {
+      if (entries.length > 0) {
+        const timestamps = entries.map(e => new Date(e.loggedAt).getTime()).filter(t => !isNaN(t));
+        if (timestamps.length > 0) {
+          const minDate = new Date(Math.min(...timestamps));
+          const maxDate = new Date(Math.max(...timestamps));
+          minDate.setHours(0, 0, 0, 0);
+          maxDate.setHours(23, 59, 59, 999);
+          const temp = new Date(minDate);
+          const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+          while (temp <= maxDate) {
+            const timeKey = `${months[temp.getMonth()]} ${temp.getDate().toString().padStart(2, "0")} ${temp.getFullYear()}`;
+            timeline[timeKey] = { time: timeKey, timestamp: temp.getTime(), ok: 0, warning: 0, error: 0, bandwidth: 0 };
+            temp.setDate(temp.getDate() + 1);
+          }
+        }
+      }
+    } else if (timeType === "day") {
       const baseDate = start || new Date();
       for (let h = 0; h < 24; h++) {
         const temp = new Date(baseDate);
@@ -366,9 +407,19 @@ export default function StreamsPage() {
         const temp = new Date(start);
         const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
         while (temp <= end) {
-          const timeKey = `${months[temp.getMonth()]} ${temp.getDate().toString().padStart(2, "0")}`;
+          const timeKey = `${months[temp.getMonth()]} ${temp.getDate().toString().padStart(2, "0")} ${temp.getFullYear()}`;
           timeline[timeKey] = { time: timeKey, timestamp: temp.getTime(), ok: 0, warning: 0, error: 0, bandwidth: 0 };
           temp.setDate(temp.getDate() + 1);
+        }
+      }
+    } else if (timeType === "year") {
+      if (start && end) {
+        const temp = new Date(start);
+        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        while (temp <= end) {
+          const timeKey = `${months[temp.getMonth()]} ${temp.getFullYear()}`;
+          timeline[timeKey] = { time: timeKey, timestamp: temp.getTime(), ok: 0, warning: 0, error: 0, bandwidth: 0 };
+          temp.setMonth(temp.getMonth() + 1);
         }
       }
     }
@@ -406,7 +457,10 @@ export default function StreamsPage() {
       const date = new Date(entry.loggedAt);
       if (!Number.isNaN(date.getTime())) {
         let timeKey = "";
-        if (timeType === "day") {
+        if (caseType === "all") {
+          const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+          timeKey = `${months[date.getMonth()]} ${date.getDate().toString().padStart(2, "0")} ${date.getFullYear()}`;
+        } else if (timeType === "day") {
           const hour = date.getHours();
           const ampm = hour >= 12 ? "PM" : "AM";
           const displayHour = hour % 12 || 12;
@@ -416,7 +470,10 @@ export default function StreamsPage() {
           timeKey = daysOfWeek[date.getDay()];
         } else if (timeType === "month") {
           const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-          timeKey = `${months[date.getMonth()]} ${date.getDate().toString().padStart(2, "0")}`;
+          timeKey = `${months[date.getMonth()]} ${date.getDate().toString().padStart(2, "0")} ${date.getFullYear()}`;
+        } else if (timeType === "year") {
+          const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+          timeKey = `${months[date.getMonth()]} ${date.getFullYear()}`;
         }
 
         if (!timeline[timeKey]) {
@@ -814,23 +871,38 @@ export default function StreamsPage() {
               <div className="flex flex-wrap items-center gap-3">
                 <select
                   value={caseType}
-                  onChange={(e) => setCaseType(e.target.value as "current" | "relative" | "custom")}
+                  onChange={(e) => setCaseType(e.target.value as "all" | "current" | "relative" | "custom")}
                   className="rounded-lg border border-outline/30 bg-surface-container-high px-3 py-2 text-xs font-semibold uppercase tracking-wide text-on-surface transition-colors hover:bg-surface-container-high/70 cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/50"
                 >
+                  <option value="all" className="bg-surface font-sans">{t("streams.caseAll")}</option>
                   <option value="current" className="bg-surface font-sans">{t("streams.caseCurrent")}</option>
                   <option value="relative" className="bg-surface font-sans">{t("streams.caseRelative")}</option>
                   <option value="custom" className="bg-surface font-sans">{t("streams.caseCustom")}</option>
                 </select>
 
-                <select
-                  value={timeType}
-                  onChange={(e) => setTimeType(e.target.value as "day" | "week" | "month")}
-                  className="rounded-lg border border-outline/30 bg-surface-container-high px-3 py-2 text-xs font-semibold uppercase tracking-wide text-on-surface transition-colors hover:bg-surface-container-high/70 cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/50"
-                >
-                  <option value="day" className="bg-surface font-sans">{t("streams.timeDay")}</option>
-                  <option value="week" className="bg-surface font-sans">{t("streams.timeWeek")}</option>
-                  <option value="month" className="bg-surface font-sans">{t("streams.timeMonth")}</option>
-                </select>
+                {caseType !== "all" && (
+                  <select
+                    value={timeType}
+                    onChange={(e) => setTimeType(e.target.value as "day" | "week" | "month")}
+                    className="rounded-lg border border-outline/30 bg-surface-container-high px-3 py-2 text-xs font-semibold uppercase tracking-wide text-on-surface transition-colors hover:bg-surface-container-high/70 cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary/50"
+                  >
+                    <option value="day" className="bg-surface font-sans">{t("streams.timeDay")}</option>
+                    <option value="week" className="bg-surface font-sans">{t("streams.timeWeek")}</option>
+                    <option value="month" className="bg-surface font-sans">{t("streams.timeMonth")}</option>
+                    <option value="year" className="bg-surface font-sans">{t("streams.timeYear")}</option>
+                  </select>
+                )}
+
+                {caseType === "custom" && timeType === "year" && (
+                  <input
+                    type="number"
+                    min="2000"
+                    max="2100"
+                    value={customVal}
+                    onChange={(e) => setCustomVal(e.target.value)}
+                    className="rounded-lg border border-outline/30 bg-surface-container-high px-3 py-1.5 text-xs text-on-surface focus:outline-none focus:ring-1 focus:ring-primary/50 font-sans"
+                  />
+                )}
 
                 {caseType === "custom" && timeType === "day" && (
                   <input
