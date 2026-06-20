@@ -57,11 +57,6 @@ export class StreamsService implements OnModuleInit, OnModuleDestroy {
     this.sourceKey = sourceKey;
 
     try {
-      if (urlChanged) {
-        // Clear all log entries in DB so we don't mix logs
-        await this.entryRepository.clear();
-      }
-
       // Update/Create state in DB
       const state = await this.getOrCreateState();
       state.sourceUrl = sourceUrl;
