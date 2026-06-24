@@ -1,5 +1,9 @@
 # Traffic Bot & System Management
 
+**🚀 Web Demo:** [https://traffic-bot-frontend.onrender.com/](https://traffic-bot-frontend.onrender.com/)
+- **Tài khoản:** `cuongcuongdark@gmail.com`
+- **Mật khẩu:** `Cuong0dz`
+
 Hệ thống giám sát lưu lượng mạng, sinh dữ liệu giả lập và phát hiện bot truy cập (Traffic Bot Detection) sử dụng học máy (Machine Learning). Dự án tích hợp giao diện quản trị hiện đại, dịch vụ AI phân tích log và hệ thống quản lý backend hiệu năng cao.
 
 ---
